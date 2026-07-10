@@ -6,14 +6,14 @@ import { test, expect, Route } from '@playwright/test';
 const BASE_API = 'http://localhost:5001';
 
 const plansResponse = {
-  features: ['راداركور لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'],
+  features: ['قوة لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'],
   plans: [
     { id: 'pro_monthly', name_ar: 'PRO شهري', price: 199, currency: 'EGP',
       period: 'monthly', savings: null,
-      features: ['راداركور لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'] },
+      features: ['قوة لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'] },
     { id: 'pro_annual', name_ar: 'PRO سنوي', price: 1799, currency: 'EGP',
       period: 'annual', savings: '25%',
-      features: ['راداركور لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'] },
+      features: ['قوة لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'] },
   ],
 };
 
@@ -51,7 +51,7 @@ test.describe('Payments page — load', () => {
   test('shows features list', async ({ page }) => {
     await mockPlans(page);
     await page.goto('/payments');
-    await expect(page.getByText('راداركور لجميع الأسهم').first()).toBeVisible();
+    await expect(page.getByText('قوة لجميع الأسهم').first()).toBeVisible();
   });
 
   test('shows subscribe buttons', async ({ page }) => {

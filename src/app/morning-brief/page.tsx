@@ -149,7 +149,7 @@ function TopScoresSection({ data }: { data: MorningBrief }) {
     <Card widgetId="WGT-061">
       <CardHeader>
         <CardTitle icon={<BarChart3 size={16} />}>
-          أعلى درجات الراداركور اليوم
+          أعلى درجات القوة اليوم
         </CardTitle>
       </CardHeader>
       <CardBody>
@@ -273,7 +273,7 @@ function NewOpportunitiesSection({ data }: { data: MorningBrief }) {
                   >
                     {Math.round(opp.radar_score)}
                   </span>
-                  <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>راداركور</p>
+                  <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>قوة</p>
                 </div>
               </Link>
             ))}

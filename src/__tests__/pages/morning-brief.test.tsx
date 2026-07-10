@@ -178,7 +178,7 @@ describe('MorningBriefPage — WGT-061 top scores', () => {
   it('renders top scores heading', async () => {
     mockGetMorningBrief.mockResolvedValue(fullResponse);
     render(<MorningBriefPage />);
-    await waitFor(() => expect(screen.getByText(/أعلى درجات الراداركور/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/أعلى درجات القوة/)).toBeInTheDocument());
   });
 
   it('renders stock symbols', async () => {

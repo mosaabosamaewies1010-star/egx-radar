@@ -240,7 +240,7 @@ function StockCard({ item }: { item: DiscoverItem }) {
             {Math.round(item.score)}
           </span>
           <span className="text-[8px] leading-none" style={{ color: 'var(--text-muted)' }}>
-            EGX
+            قوة
           </span>
         </div>
       </div>
@@ -341,7 +341,7 @@ function FilterBar({
           style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
           aria-label="الترتيب"
         >
-          <option value="score">ترتيب: EGX Radar</option>
+          <option value="score">ترتيب: القوة</option>
           <option value="rvol">ترتيب: الحجم النسبي</option>
           <option value="rsi">ترتيب: RSI</option>
           <option value="change_pct">ترتيب: التغيّر%</option>
@@ -473,7 +473,7 @@ export default function DiscoverPage() {
             اكتشف الأسهم
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-            أسهم مصنّفة بـ EGX Radar — قسّمت لك أبرز الإشارات اليوم
+            أسهم مصنّفة بـ القوة — قسّمت لك أبرز الإشارات اليوم
           </p>
         </div>
 

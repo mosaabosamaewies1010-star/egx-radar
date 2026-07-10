@@ -12,7 +12,7 @@ import { Card, CardHeader, CardTitle, CardBody, ErrorState, WidgetSkeleton } fro
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<NotificationType, { icon: React.ReactNode; label: string; color: string }> = {
-  score_change:    { icon: <TrendingUp   size={14} />, label: 'تغيّر في الراداركور', color: 'var(--accent-primary)' },
+  score_change:    { icon: <TrendingUp   size={14} />, label: 'تغيّر في القوة', color: 'var(--accent-primary)' },
   new_opportunity: { icon: <Target       size={14} />, label: 'فرصة جديدة',          color: '#22c55e' },
   sl_alert:        { icon: <AlertTriangle size={14} />, label: 'تنبيه وقف الخسارة',  color: '#ef4444' },
   tp_reached:      { icon: <Target       size={14} />, label: 'هدف محقق',            color: '#22c55e' },

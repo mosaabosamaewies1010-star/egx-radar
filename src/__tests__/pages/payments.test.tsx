@@ -37,7 +37,7 @@ jest.mock('next/link', () => {
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const FEATURES = ['راداركور لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'];
+const FEATURES = ['قوة لجميع الأسهم', 'تنبيهات فورية', 'فرص التداول'];
 
 const plansResponse: import('@/lib/types').PlansResponse = {
   features: FEATURES,
@@ -159,7 +159,7 @@ describe('PaymentsPage — WGT-080 plan cards', () => {
   it('renders plan features', async () => {
     setupAnonymous();
     render(<PaymentsPage />);
-    await waitFor(() => expect(screen.getAllByText('راداركور لجميع الأسهم').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('قوة لجميع الأسهم').length).toBeGreaterThan(0));
   });
 
   it('subscribe buttons present for anonymous', async () => {
