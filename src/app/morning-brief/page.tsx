@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Minus, Target,
   BarChart3, Zap, Sun,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import type { MorningBrief } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardBody, ErrorState, WidgetSkeleton, MetricCard } from '@/design-system';
 
@@ -298,14 +298,20 @@ export default function MorningBriefPage() {
   const [data,    setData]    = useState<MorningBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+  const [proLocked, setProLocked] = useState(false);
 
   const load = async () => {
     setLoading(true);
     setError(null);
+    setProLocked(false);
     try {
       setData(await api.getMorningBrief());
-    } catch {
-      setError('تعذّر تحميل الموجز الصباحي');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setProLocked(true);
+      } else {
+        setError('تعذّر تحميل الموجز الصباحي');
+      }
     } finally {
       setLoading(false);
     }
@@ -330,6 +336,26 @@ export default function MorningBriefPage() {
           <WidgetSkeleton rows={3} />
           <WidgetSkeleton rows={5} />
           <WidgetSkeleton rows={4} />
+        </div>
+      ) : proLocked ? (
+        <div
+          className="rounded-2xl p-8 flex flex-col items-center gap-4 text-center"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
+        >
+          <span style={{ fontSize: 40 }}>🔒</span>
+          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+            الموجز الصباحي للمشتركين PRO فقط
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            احصل على ملخص يومي شامل — النظام، أفضل الأسهم، والفرص الجديدة
+          </p>
+          <a
+            href="/payments"
+            className="px-6 py-2 rounded-lg font-bold text-sm transition-opacity hover:opacity-90"
+            style={{ background: 'var(--accent-gold)', color: '#000' }}
+          >
+            ترقية إلى PRO
+          </a>
         </div>
       ) : error ? (
         <ErrorState scenario="network" onRetry={load} />

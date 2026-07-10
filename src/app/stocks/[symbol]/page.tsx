@@ -422,6 +422,36 @@ export default function StockPage() {
           </Card>
         </div>
 
+        {/* ── Momentum Opportunity ────────────────────────────────── */}
+        {opp && (
+          <section className="space-y-3">
+            <div ref={oppRef}>
+              <div className="flex items-center gap-2">
+                <Star size={16} style={{ color: 'var(--accent-gold)' }} />
+                <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>الفرصة المكتشفة</h2>
+              </div>
+              <OpportunityCard
+                symbol={symbol}
+                nameAr={data.name_ar}
+                score={data.score}
+                entry={opp.levels.entry}
+                tp1={opp.levels.tp1}
+                tp2={opp.levels.tp2}
+                sl={opp.levels.sl}
+                currentPrice={data.price ?? opp.levels.entry}
+                changeAmt={data.change_amt ?? 0}
+                changePct={data.change_pct ?? 0}
+                holdDays={opp.levels.max_hold_days}
+                signalQuality={opp.signal_quality}
+                type={opp.type}
+                lang="ar"
+                reason={opp.reason?.ar}
+                signalHistory={[]}
+              />
+            </div>
+          </section>
+        )}
+
         {/* ── SRA Opportunity (Primary Engine) ────────────────────── */}
         {sra && (
           <section className="space-y-3" ref={oppRef}>
