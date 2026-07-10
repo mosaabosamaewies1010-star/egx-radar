@@ -3,7 +3,8 @@
 export type RegimeType = 'BULL' | 'SIDEWAYS' | 'BEAR' | 'VOLATILE' | 'LOW_LIQUIDITY';
 export type DataQuality = 'HIGH' | 'MEDIUM' | 'LOW' | 'NO_DATA';
 export type SignalQuality = 'HIGH' | 'MEDIUM' | 'LOW';
-export type OppType = 'Breakout' | 'Momentum' | 'Swing' | 'Sharia';
+export type OppType = 'Breakout' | 'Momentum' | 'Swing' | 'Sharia' | 'SRA_A+' | 'SRA_A' | 'SRA_B';
+export type SRAGrade = 'A+' | 'A' | 'B';
 export type OBVTrend = 'UP' | 'DOWN' | 'FLAT';
 
 export interface ScoreBreakdown {
@@ -45,6 +46,39 @@ export interface Opportunity {
   outcome?:       string;
 }
 
+export interface SRAExitProfile {
+  tp:       number;
+  sl:       number;
+  max_bars: number;
+  tp_pct?:  number;
+}
+
+export interface SRAOpportunity {
+  id:               number;
+  type:             OppType;
+  run_date:         string;
+  score:            number;
+  grade:            SRAGrade;
+  rvol_spike:       number;
+  rsi_at_low:       number;
+  regime:           string;
+  market_breadth:   number;
+  signals:          string[];
+  strategy_version: string;
+  entry:            number;
+  pro_required:     boolean;
+  // PRO-only fields (null for free users)
+  sl:               number | null;
+  similar_cases:    number | null;
+  win_rate:         number | null;
+  avg_return:       number | null;
+  median_return:    number | null;
+  best_case:        number | null;
+  worst_case:       number | null;
+  kb_confidence:    'high' | 'medium' | 'low' | 'none' | null;
+  exit_profiles:    { FAST: SRAExitProfile; BALANCED: SRAExitProfile; } | null;
+}
+
 export interface StockData {
   symbol:      string;
   name_ar:     string;
@@ -58,6 +92,7 @@ export interface StockData {
   explain:     { ar: string; en: string };
   data_quality: DataQuality;
   opportunity:  Opportunity | null;
+  sra_opportunity: SRAOpportunity | null;
   // price snapshot (from last fetch — may be present)
   price?:       number;
   change_amt?:  number;
