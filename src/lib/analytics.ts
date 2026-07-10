@@ -22,7 +22,13 @@ export type AnalyticsEvent =
   | { name: 'error_shown';        props: { scenario: string; path: string } }
   | { name: 'retry_clicked';      props: { scenario: string; path: string } }
   // Widget visibility (IntersectionObserver)
-  | { name: 'widget_viewed';      props: { widget_id: string; symbol?: string; duration_ms?: number } };
+  | { name: 'widget_viewed';      props: { widget_id: string; symbol?: string; duration_ms?: number } }
+  // Beta telemetry
+  | { name: 'pro_upgrade_clicked'; props: { symbol: string; source: string } }
+  | { name: 'discover_opened';    props: { section?: string } }
+  | { name: 'watchlist_added';    props: { symbol: string } }
+  | { name: 'morning_brief_opened'; props: Record<string, never> }
+  | { name: 'stock_searched';     props: { query: string } };
 
 type EventName = AnalyticsEvent['name'];
 type EventProps<N extends EventName> = Extract<AnalyticsEvent, { name: N }>['props'];
