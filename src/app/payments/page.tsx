@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Check, Crown, Clock, AlertCircle } from 'lucide-react';
+import { Check, Crown, Clock, AlertCircle, Gift } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Plan, PaymentRecord } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardBody, ErrorState, WidgetSkeleton } from '@/design-system';
@@ -355,6 +355,27 @@ export default function PaymentsPage() {
               ))}
             </div>
           )}
+
+          {/* Referral promo banner */}
+          <div
+            className="rounded-2xl p-5 flex items-start gap-4"
+            style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)' }}
+          >
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(34,197,94,0.15)' }}
+            >
+              <Gift size={20} style={{ color: 'var(--success)' }} />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm" style={{ color: 'var(--success)' }}>
+                ادعُ أصدقائك واحصل على خصم 20%
+              </p>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                شارك EGX Radar مع صديق — لما يشترك، هتاخد خصم 20% من الشهر الجاي تلقائياً.
+              </p>
+            </div>
+          </div>
 
           {/* Billing history */}
           {user && <BillingHistory items={history} />}
