@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Search, LogOut, User } from 'lucide-react';
+import { Search, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Badge } from '@/design-system';
 
@@ -122,6 +122,16 @@ export function AppNav() {
         >
           {lang === 'ar' ? 'إشعارات' : 'Alerts'}
         </Link>
+        {user?.email?.toLowerCase() === 'mosaab.osama.ewies1010@gmail.com' && (
+          <Link
+            href="/admin"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+            style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}
+          >
+            <LayoutDashboard size={11} />
+            Admin
+          </Link>
+        )}
       </nav>
 
       {/* Search */}
