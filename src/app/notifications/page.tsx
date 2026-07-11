@@ -5,7 +5,7 @@ import {
   Bell, BellOff, TrendingUp, AlertTriangle, Target,
   Activity, Newspaper, CheckCheck, Trash2, X,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import type { NotificationItem, NotificationType } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardBody, ErrorState, WidgetSkeleton } from '@/design-system';
 
@@ -224,6 +224,7 @@ export default function NotificationsPage() {
   const [unread,     setUnread]     = useState(0);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
+  const [proLocked,  setProLocked]  = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [marking,    setMarking]    = useState(false);
   const [clearing,   setClearing]   = useState(false);
@@ -231,12 +232,17 @@ export default function NotificationsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setProLocked(false);
     try {
       const data = await api.getNotifications({ limit: 50 });
       setItems(data.items);
       setUnread(data.unread);
-    } catch {
-      setError('تعذّر تحميل الإشعارات');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setProLocked(true);
+      } else {
+        setError('تعذّر تحميل الإشعارات');
+      }
     } finally {
       setLoading(false);
     }
@@ -305,6 +311,26 @@ export default function NotificationsPage() {
 
       {loading ? (
         <div className="rounded-2xl overflow-hidden"><WidgetSkeleton rows={6} /></div>
+      ) : proLocked ? (
+        <div
+          className="rounded-2xl p-8 flex flex-col items-center gap-4 text-center"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
+        >
+          <span style={{ fontSize: 40 }}>🔒</span>
+          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+            الإشعارات للمشتركين PRO فقط
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            احصل على تنبيهات الأسعار والفرص وتغيّرات السوق مع اشتراك PRO
+          </p>
+          <a
+            href="/payments"
+            className="px-6 py-2 rounded-lg font-bold text-sm transition-opacity hover:opacity-90"
+            style={{ background: 'var(--accent-gold)', color: '#000' }}
+          >
+            ترقية إلى PRO
+          </a>
+        </div>
       ) : error ? (
         <ErrorState scenario="network" onRetry={load} />
       ) : (
