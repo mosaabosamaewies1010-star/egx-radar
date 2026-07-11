@@ -161,14 +161,21 @@ export interface PlansResponse {
 }
 
 export interface PaymentRecord {
-  id:           number;
-  user_id:      number;
-  plan:         string;
-  amount:       number;
-  currency:     string;
-  status:       'pending' | 'completed' | 'failed' | 'refunded';
-  provider_ref: string | null;
-  created_at:   string;
+  id:             number;
+  user_id:        number;
+  plan:           string;
+  amount:         number;
+  currency:       string;
+  status:         'pending' | 'completed' | 'failed' | 'refunded' | 'rejected';
+  provider_ref:   string | null;
+  payment_method: string | null;
+  has_receipt:    boolean;
+  admin_note:     string | null;
+  created_at:     string;
+  // admin-only fields
+  receipt_image?: string | null;
+  user_email?:    string | null;
+  user_name?:     string | null;
 }
 
 export interface SubscribeResponse {

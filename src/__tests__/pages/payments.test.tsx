@@ -53,6 +53,7 @@ const pendingPayment: import('@/lib/types').PaymentRecord = {
   id: 1, user_id: 1, plan: 'pro_monthly', amount: 199,
   currency: 'EGP', status: 'pending',
   provider_ref: 'EGX-ABCD1234', created_at: '2026-07-07T10:00:00',
+  payment_method: 'instapay', has_receipt: true, admin_note: null,
 };
 
 const subscribeResponse: import('@/lib/types').SubscribeResponse = {

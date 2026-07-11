@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle, Users, ShieldCheck, BarChart2, Eye } from 'lucide-react';
+import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle, Users, ShieldCheck, BarChart2, Eye, CreditCard, X, Check } from 'lucide-react';
 import { AppNav } from '@/components';
 import { api, ApiError } from '@/lib/api';
-import type { User } from '@/lib/types';
+import type { User, PaymentRecord } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -184,6 +184,10 @@ export default function AdminPage() {
   const [isOwner,     setIsOwner]     = useState(false);
   const [data,        setData]        = useState<AdminHealth | null>(null);
   const [ownerData,   setOwnerData]   = useState<OwnerDashboard | null>(null);
+  const [payments,    setPayments]    = useState<PaymentRecord[]>([]);
+  const [payAction,   setPayAction]   = useState<Record<number, 'approving'|'rejecting'|null>>({});
+  const [rejectNote,  setRejectNote]  = useState<Record<number, string>>({});
+  const [showReject,  setShowReject]  = useState<Record<number, boolean>>({});
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState<string | null>(null);
   const [lastUpdate,  setLastUpdate]  = useState<Date | null>(null);
@@ -214,6 +218,17 @@ export default function AdminPage() {
     return res.json() as Promise<OwnerDashboard>;
   }, [base]);
 
+  const loadPayments = useCallback(async () => {
+    const token = localStorage.getItem('egx_token');
+    if (!token) return;
+    const res = await fetch(`${base}/api/admin/payments?status=all`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const json = await res.json();
+    setPayments(json.payments ?? []);
+  }, [base]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -223,14 +238,41 @@ export default function AdminPage() {
         loadOwnerDashboard(),
       ]);
       setData(health);
-      if (owner) setOwnerData(owner);
+      if (owner) {
+        setOwnerData(owner);
+        await loadPayments();
+      }
       setLastUpdate(new Date());
     } catch {
       setError('تعذّر الاتصال بالـ API');
     } finally {
       setLoading(false);
     }
-  }, [loadHealth, loadOwnerDashboard]);
+  }, [loadHealth, loadOwnerDashboard, loadPayments]);
+
+  const handleApprove = async (payId: number) => {
+    setPayAction((p) => ({ ...p, [payId]: 'approving' }));
+    const token = localStorage.getItem('egx_token');
+    await fetch(`${base}/api/admin/payments/${payId}/approve`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setPayAction((p) => ({ ...p, [payId]: null }));
+    await loadPayments();
+  };
+
+  const handleReject = async (payId: number) => {
+    setPayAction((p) => ({ ...p, [payId]: 'rejecting' }));
+    const token = localStorage.getItem('egx_token');
+    await fetch(`${base}/api/admin/payments/${payId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body:   JSON.stringify({ note: rejectNote[payId] ?? '' }),
+    });
+    setPayAction((p) => ({ ...p, [payId]: null }));
+    setShowReject((s) => ({ ...s, [payId]: false }));
+    await loadPayments();
+  };
 
   useEffect(() => {
     (async () => {
@@ -539,6 +581,139 @@ export default function AdminPage() {
               </div>
             </section>
           </>
+        )}
+
+        {/* ── Owner-only: Pending Payments ────────────────────────────────── */}
+        {isOwner && payments.length > 0 && (
+          <section className="space-y-3">
+            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              طلبات الاشتراك ({payments.filter(p => p.status === 'pending').length} في الانتظار)
+            </h2>
+            <div className="flex flex-col gap-3">
+              {payments.map((pay) => {
+                const isPending  = pay.status === 'pending';
+                const statusColors: Record<string, string> = {
+                  pending:   '#f59e0b',
+                  completed: '#22c55e',
+                  rejected:  '#ef4444',
+                  failed:    '#ef4444',
+                  refunded:  'var(--text-muted)',
+                };
+                const statusLabels: Record<string, string> = {
+                  pending:   'في الانتظار',
+                  completed: 'مُفعَّل ✅',
+                  rejected:  'مرفوض',
+                  failed:    'فشل',
+                  refunded:  'مسترد',
+                };
+                const methodLabels: Record<string, string> = {
+                  instapay:      'InstaPay',
+                  vodafone_cash: 'Vodafone Cash',
+                };
+                return (
+                  <div
+                    key={pay.id}
+                    className="rounded-xl p-4 space-y-3"
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: `1px solid ${isPending ? 'rgba(245,158,11,0.4)' : 'var(--border-subtle)'}`,
+                    }}
+                  >
+                    {/* Header row */}
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <CreditCard size={14} style={{ color: 'var(--text-muted)' }} />
+                          <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                            {pay.user_email ?? `User #${pay.user_id}`}
+                          </span>
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-bold"
+                            style={{ background: `${statusColors[pay.status]}20`, color: statusColors[pay.status], border: `1px solid ${statusColors[pay.status]}40` }}
+                          >
+                            {statusLabels[pay.status] ?? pay.status}
+                          </span>
+                        </div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          {pay.plan === 'pro_monthly' ? 'PRO شهري' : 'PRO سنوي'} · {methodLabels[pay.payment_method ?? ''] ?? pay.payment_method} · {pay.amount} {pay.currency}
+                        </p>
+                        <p className="text-xs num" style={{ color: 'var(--text-muted)' }}>
+                          {new Date(pay.created_at).toLocaleString('ar-EG')} · ref: {pay.provider_ref}
+                        </p>
+                        {pay.admin_note && (
+                          <p className="text-xs" style={{ color: '#ef4444' }}>ملاحظة: {pay.admin_note}</p>
+                        )}
+                      </div>
+                      {/* Approve/Reject buttons */}
+                      {isPending && (
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleApprove(pay.id)}
+                            disabled={!!payAction[pay.id]}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                            style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}
+                          >
+                            {payAction[pay.id] === 'approving'
+                              ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                              : <Check size={12} />}
+                            موافقة
+                          </button>
+                          <button
+                            onClick={() => setShowReject((s) => ({ ...s, [pay.id]: !s[pay.id] }))}
+                            disabled={!!payAction[pay.id]}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                            style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                          >
+                            <X size={12} />
+                            رفض
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Receipt image */}
+                    {pay.receipt_image && (
+                      <details className="space-y-2">
+                        <summary className="text-xs cursor-pointer" style={{ color: 'var(--accent-primary)' }}>
+                          عرض صورة الإيصال
+                        </summary>
+                        <img
+                          src={pay.receipt_image}
+                          alt="receipt"
+                          className="rounded-lg max-h-64 object-contain"
+                          style={{ border: '1px solid var(--border-subtle)' }}
+                        />
+                      </details>
+                    )}
+
+                    {/* Reject note input */}
+                    {isPending && showReject[pay.id] && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="سبب الرفض (اختياري)"
+                          value={rejectNote[pay.id] ?? ''}
+                          onChange={(e) => setRejectNote((n) => ({ ...n, [pay.id]: e.target.value }))}
+                          className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none"
+                          style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                        />
+                        <button
+                          onClick={() => handleReject(pay.id)}
+                          disabled={!!payAction[pay.id]}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                          style={{ background: '#ef4444', color: 'white' }}
+                        >
+                          {payAction[pay.id] === 'rejecting'
+                            ? <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin inline-block" />
+                            : 'تأكيد الرفض'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {data && (
