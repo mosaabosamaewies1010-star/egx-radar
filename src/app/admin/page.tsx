@@ -1,19 +1,19 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle } from 'lucide-react';
+import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle, Users, ShieldCheck } from 'lucide-react';
 import { AppNav } from '@/components';
-import { api } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface AdminHealth {
   as_of: string;
+  users?: { total: number; pro: number; free: number };
   signals: {
     today:    number;
     sra_open: number;
     all_open: number;
-    sra_7d:   number;
-    sra_30d:  number;
+    sra_7d?:  number;
+    sra_30d?: number;
   };
   performance: {
     total_closed: number;
@@ -150,6 +150,12 @@ export default function AdminPage() {
   const [error,   setError]   = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
+  // Grant PRO form
+  const [apiKey,       setApiKey]       = useState('');
+  const [grantEmail,   setGrantEmail]   = useState('');
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [grantMsg,     setGrantMsg]     = useState<{ ok: boolean; text: string } | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -176,6 +182,33 @@ export default function AdminPage() {
   }, [load]);
 
   const conf = data ? kbConfidence(data.knowledge_base.size) : null;
+
+  const handleGrantPro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKey || !grantEmail) return;
+    setGrantLoading(true);
+    setGrantMsg(null);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
+      const res  = await fetch(`${base}/api/admin/grant-pro`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+        body:    JSON.stringify({ email: grantEmail }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setGrantMsg({ ok: true, text: `✅ ${grantEmail} — تم تفعيل PRO` });
+        setGrantEmail('');
+        load();
+      } else {
+        setGrantMsg({ ok: false, text: json.error ?? `خطأ ${res.status}` });
+      }
+    } catch {
+      setGrantMsg({ ok: false, text: 'تعذّر الاتصال بالـ API' });
+    } finally {
+      setGrantLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -388,6 +421,85 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
+            </section>
+
+            {/* ── Section: Users ──────────────────────────────────────── */}
+            {data.users && (
+              <section className="space-y-3">
+                <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  المستخدمون
+                </h2>
+                <div className="grid grid-cols-3 gap-3">
+                  <StatCard label="إجمالي المستخدمين" value={data.users.total} icon={<Users size={13} />} color="var(--accent-primary)" />
+                  <StatCard label="مشتركو PRO"         value={data.users.pro}   icon={<ShieldCheck size={13} />} color="#f0b429" />
+                  <StatCard label="حسابات مجانية"      value={data.users.free}  icon={<Users size={13} />} />
+                </div>
+              </section>
+            )}
+
+            {/* ── Section: Grant PRO ──────────────────────────────────── */}
+            <section
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={16} style={{ color: '#f0b429' }} />
+                <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>منح / إلغاء PRO</h2>
+              </div>
+
+              <form onSubmit={handleGrantPro} className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs" style={{ color: 'var(--text-muted)' }}>BOT_API_KEY</label>
+                    <input
+                      type="password"
+                      placeholder="المفتاح السري من Render"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="rounded-lg px-3 py-2 text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', direction: 'ltr' }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs" style={{ color: 'var(--text-muted)' }}>البريد الإلكتروني</label>
+                    <input
+                      type="email"
+                      placeholder="user@example.com"
+                      value={grantEmail}
+                      onChange={(e) => setGrantEmail(e.target.value)}
+                      className="rounded-lg px-3 py-2 text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', direction: 'ltr' }}
+                    />
+                  </div>
+                </div>
+
+                {grantMsg && (
+                  <div
+                    className="px-4 py-2.5 rounded-lg text-sm"
+                    style={{
+                      background: grantMsg.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                      color:      grantMsg.ok ? '#22c55e' : '#ef4444',
+                      border:     `1px solid ${grantMsg.ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                    }}
+                  >
+                    {grantMsg.text}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={grantLoading || !apiKey || !grantEmail}
+                    className="px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                    style={{ background: '#f0b429', color: '#000' }}
+                  >
+                    {grantLoading
+                      ? <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                      : <ShieldCheck size={14} />}
+                    منح PRO
+                  </button>
+                </div>
+              </form>
             </section>
 
             {/* ── Checklist ───────────────────────────────────────────── */}
