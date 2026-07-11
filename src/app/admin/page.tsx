@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle, Users, ShieldCheck } from 'lucide-react';
+import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle, Users, ShieldCheck, BarChart2, Eye } from 'lucide-react';
 import { AppNav } from '@/components';
+import { api, ApiError } from '@/lib/api';
+import type { User } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,6 +43,34 @@ interface AdminHealth {
   } | null;
 }
 
+interface OwnerUser {
+  id:         number;
+  email:      string;
+  name:       string;
+  is_pro:     boolean;
+  created_at: string | null;
+  last_login: string | null;
+}
+
+interface OwnerDashboard {
+  users: {
+    total: number;
+    pro:   number;
+    free:  number;
+    list:  OwnerUser[];
+  };
+  analytics: {
+    period_days:     number;
+    total_events:    number;
+    page_views:      number;
+    event_breakdown: { name: string; count: number }[];
+    top_pages:       { path: string; views: number }[];
+    top_stocks:      { symbol: string; views: number }[];
+  };
+}
+
+const ADMIN_EMAIL = 'mosaab.osama.ewies1010@gmail.com';
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number | null | undefined, d = 1): string {
@@ -62,6 +92,11 @@ function regimeAr(r: string): string {
   if (r === 'VOLATILE')      return 'متقلب 🟠';
   if (r === 'LOW_LIQUIDITY') return 'سيولة منخفضة 🔵';
   return r;
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -145,10 +180,13 @@ function GradeBar({ dist }: { dist: { 'A+': number; A: number; B: number } }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [data,    setData]    = useState<AdminHealth | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [me,          setMe]          = useState<User | null>(null);
+  const [isOwner,     setIsOwner]     = useState(false);
+  const [data,        setData]        = useState<AdminHealth | null>(null);
+  const [ownerData,   setOwnerData]   = useState<OwnerDashboard | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState<string | null>(null);
+  const [lastUpdate,  setLastUpdate]  = useState<Date | null>(null);
 
   // Grant PRO form
   const [apiKey,       setApiKey]       = useState('');
@@ -156,27 +194,55 @@ export default function AdminPage() {
   const [grantLoading, setGrantLoading] = useState(false);
   const [grantMsg,     setGrantMsg]     = useState<{ ok: boolean; text: string } | null>(null);
 
+  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
+
+  const loadHealth = useCallback(async () => {
+    const res = await fetch(`${base}/api/admin/health`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json() as Promise<AdminHealth>;
+  }, [base]);
+
+  const loadOwnerDashboard = useCallback(async () => {
+    const token = localStorage.getItem('egx_token');
+    if (!token) return null;
+    const res = await fetch(`${base}/api/admin/dashboard?days=7`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<OwnerDashboard>;
+  }, [base]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001'}/api/admin/health`,
-        { headers: { 'Content-Type': 'application/json' } },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json: AdminHealth = await res.json();
-      setData(json);
+      const [health, owner] = await Promise.all([
+        loadHealth(),
+        loadOwnerDashboard(),
+      ]);
+      setData(health);
+      if (owner) setOwnerData(owner);
       setLastUpdate(new Date());
-    } catch (e) {
+    } catch {
       setError('تعذّر الاتصال بالـ API');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadHealth, loadOwnerDashboard]);
 
   useEffect(() => {
-    load();
+    (async () => {
+      try {
+        const user = await api.getMe();
+        setMe(user);
+        setIsOwner(user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+      } catch {
+        // not logged in — still show public health
+      }
+      load();
+    })();
     const t = setInterval(load, 60_000);
     return () => clearInterval(t);
   }, [load]);
@@ -189,8 +255,7 @@ export default function AdminPage() {
     setGrantLoading(true);
     setGrantMsg(null);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
-      const res  = await fetch(`${base}/api/admin/grant-pro`, {
+      const res = await fetch(`${base}/api/admin/grant-pro`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
         body:    JSON.stringify({ email: grantEmail }),
@@ -230,6 +295,14 @@ export default function AdminPage() {
               >
                 ADMIN
               </span>
+              {isOwner && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-bold"
+                  style={{ background: 'rgba(240,180,41,0.15)', color: '#f0b429', border: '1px solid rgba(240,180,41,0.3)' }}
+                >
+                  OWNER
+                </span>
+              )}
             </div>
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
               EGX Radar v1.0 Beta — {lastUpdate ? `آخر تحديث ${lastUpdate.toLocaleTimeString('ar-EG')}` : 'جارٍ التحميل...'}
@@ -256,6 +329,218 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── Owner-only: Analytics section ───────────────────────────────── */}
+        {isOwner && ownerData && (
+          <>
+            {/* Analytics overview */}
+            <section className="space-y-3">
+              <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                الزيارات والتحليلات — آخر 7 أيام
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatCard
+                  label="إجمالي الأحداث"
+                  value={ownerData.analytics.total_events}
+                  color="var(--accent-primary)"
+                  icon={<BarChart2 size={13} />}
+                />
+                <StatCard
+                  label="مشاهدات الصفحات"
+                  value={ownerData.analytics.page_views}
+                  color="#3b82f6"
+                  icon={<Eye size={13} />}
+                />
+                <StatCard
+                  label="إجمالي المستخدمين"
+                  value={ownerData.users.total}
+                  color="var(--text-primary)"
+                  icon={<Users size={13} />}
+                />
+                <StatCard
+                  label="مشتركو PRO"
+                  value={ownerData.users.pro}
+                  color="#f0b429"
+                  icon={<ShieldCheck size={13} />}
+                />
+              </div>
+            </section>
+
+            {/* Top pages + Top stocks */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Top pages */}
+              <div
+                className="rounded-xl p-4 space-y-3"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <Eye size={14} style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                    أكثر الصفحات زيارة
+                  </span>
+                </div>
+                {ownerData.analytics.top_pages.length === 0 ? (
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>لا توجد بيانات بعد</p>
+                ) : (
+                  <div className="space-y-2">
+                    {ownerData.analytics.top_pages.slice(0, 7).map(({ path, views }) => {
+                      const max = ownerData.analytics.top_pages[0]?.views || 1;
+                      const pct = Math.round((views / max) * 100);
+                      return (
+                        <div key={path} className="space-y-0.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-mono truncate" style={{ color: 'var(--text-secondary)', maxWidth: '60%', direction: 'ltr' }}>
+                              {path || '/'}
+                            </span>
+                            <span className="text-xs num font-bold" style={{ color: 'var(--accent-primary)' }}>
+                              {views}
+                            </span>
+                          </div>
+                          <div className="h-1 rounded-full" style={{ background: 'var(--bg-elevated)' }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${pct}%`, background: 'var(--accent-primary)' }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Top stocks */}
+              <div
+                className="rounded-xl p-4 space-y-3"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={14} style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                    أكثر الأسهم بحثاً
+                  </span>
+                </div>
+                {ownerData.analytics.top_stocks.length === 0 ? (
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>لا توجد بيانات بعد</p>
+                ) : (
+                  <div className="space-y-2">
+                    {ownerData.analytics.top_stocks.slice(0, 7).map(({ symbol, views }) => {
+                      const max = ownerData.analytics.top_stocks[0]?.views || 1;
+                      const pct = Math.round((views / max) * 100);
+                      return (
+                        <div key={symbol} className="space-y-0.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold num" style={{ color: '#22c55e' }}>
+                              {symbol}
+                            </span>
+                            <span className="text-xs num font-bold" style={{ color: 'var(--text-secondary)' }}>
+                              {views}
+                            </span>
+                          </div>
+                          <div className="h-1 rounded-full" style={{ background: 'var(--bg-elevated)' }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${pct}%`, background: '#22c55e' }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Event breakdown */}
+            {ownerData.analytics.event_breakdown.length > 0 && (
+              <section
+                className="rounded-xl p-4 space-y-3"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+              >
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  توزيع الأحداث
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {ownerData.analytics.event_breakdown.map(({ name, count }) => (
+                    <div
+                      key={name}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+                      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
+                    >
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', direction: 'ltr' }}>
+                        {name}
+                      </span>
+                      <span className="num font-bold" style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-primary)' }}>
+                        {count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Users table */}
+            <section className="space-y-3">
+              <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                جميع المستخدمين ({ownerData.users.total})
+              </h2>
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{ border: '1px solid var(--border-subtle)' }}
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-subtle)' }}>
+                        {['البريد', 'الاسم', 'PRO', 'تاريخ التسجيل', 'آخر دخول'].map(col => (
+                          <th
+                            key={col}
+                            className="px-4 py-2.5 text-right font-semibold"
+                            style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}
+                          >
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ownerData.users.list.map((u) => (
+                        <tr
+                          key={u.id}
+                          style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}
+                        >
+                          <td className="px-4 py-2.5 font-mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', direction: 'ltr' }}>
+                            {u.email}
+                          </td>
+                          <td className="px-4 py-2.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-primary)' }}>
+                            {u.name || '—'}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {u.is_pro ? (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(240,180,41,0.15)', color: '#f0b429', border: '1px solid rgba(240,180,41,0.3)' }}>
+                                PRO
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-xs" style={{ color: 'var(--text-muted)' }}>
+                                مجاني
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                            {fmtDate(u.created_at)}
+                          </td>
+                          <td className="px-4 py-2.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                            {fmtDate(u.last_login)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
         {data && (
           <>
             {/* ── Section 1: Signals ──────────────────────────────────── */}
@@ -279,12 +564,12 @@ export default function AdminPage() {
                 />
                 <StatCard
                   label="SRA آخر 7 أيام"
-                  value={data.signals.sra_7d}
+                  value={data.signals.sra_7d ?? '—'}
                   icon={<Activity size={13} />}
                 />
                 <StatCard
                   label="SRA آخر 30 يوم"
-                  value={data.signals.sra_30d}
+                  value={data.signals.sra_30d ?? '—'}
                   icon={<Activity size={13} />}
                 />
               </div>
@@ -324,11 +609,10 @@ export default function AdminPage() {
               </div>
             </section>
 
-            {/* ── Section 3: Grade Dist + SRA ─────────────────────────── */}
+            {/* ── Section 3: Grade Dist + KB ──────────────────────────── */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <GradeBar dist={data.sra.grade_dist} />
 
-              {/* KB Stats */}
               <div
                 className="rounded-xl p-4 space-y-3"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
@@ -423,8 +707,8 @@ export default function AdminPage() {
               </div>
             </section>
 
-            {/* ── Section: Users ──────────────────────────────────────── */}
-            {data.users && (
+            {/* ── Section: Users (non-owner fallback) ─────────────────── */}
+            {!isOwner && data.users && (
               <section className="space-y-3">
                 <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   المستخدمون
@@ -486,19 +770,17 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={grantLoading || !apiKey || !grantEmail}
-                    className="px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2"
-                    style={{ background: '#f0b429', color: '#000' }}
-                  >
-                    {grantLoading
-                      ? <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
-                      : <ShieldCheck size={14} />}
-                    منح PRO
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={grantLoading || !apiKey || !grantEmail}
+                  className="w-fit px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                  style={{ background: '#f0b429', color: '#000' }}
+                >
+                  {grantLoading
+                    ? <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                    : <ShieldCheck size={14} />}
+                  منح PRO
+                </button>
               </form>
             </section>
 
