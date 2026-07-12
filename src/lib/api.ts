@@ -87,10 +87,10 @@ export const api = {
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   /** Register a new account — returns JWT + user profile */
-  register(email: string, password: string, name?: string): Promise<AuthResponse> {
+  register(email: string, password: string, name?: string, ref?: string): Promise<AuthResponse> {
     return apiFetch<AuthResponse>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, ref }),
     });
   },
 

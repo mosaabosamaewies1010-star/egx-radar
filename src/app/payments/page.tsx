@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Check, Crown, Clock, AlertCircle, Gift, Upload, Smartphone, Wallet, CheckCircle } from 'lucide-react';
+import { Check, Crown, Clock, AlertCircle, Gift, Upload, Smartphone, Wallet, CheckCircle, Copy, Link2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Plan, PaymentRecord } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardBody, ErrorState, WidgetSkeleton } from '@/design-system';
@@ -190,6 +190,18 @@ export default function PaymentsPage() {
 
   const selectedPlanObj = plansData?.plans.find((p) => p.id === selectedPlan);
   const accountNumber   = selectedMethod ? plansData?.accounts[selectedMethod] : null;
+  const hasDiscount     = (user?.discount_credits ?? 0) > 0;
+  const referralLink    = user?.referral_code
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://egxradar.com'}/register?ref=${user.referral_code}`
+    : null;
+
+  const [copied, setCopied] = useState(false);
+  const copyLink = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6" style={{ minHeight: '100vh' }}>
@@ -282,13 +294,32 @@ export default function PaymentsPage() {
                           </span>
                           {isSelected && <CheckCircle size={14} style={{ color: accent, marginRight: 'auto' }} />}
                         </div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black num" style={{ color: accent }}>
-                            {fmt(plan.price, 0)}
-                          </span>
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            {plan.currency} / {plan.period === 'monthly' ? 'شهر' : 'سنة'}
-                          </span>
+                        <div className="flex items-baseline gap-1 flex-wrap">
+                          {hasDiscount ? (
+                            <>
+                              <span className="text-2xl font-black num" style={{ color: '#22c55e' }}>
+                                {fmt(plan.price * 0.8, 0)}
+                              </span>
+                              <span className="text-sm line-through num" style={{ color: 'var(--text-muted)' }}>
+                                {fmt(plan.price, 0)}
+                              </span>
+                              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                {plan.currency} / {plan.period === 'monthly' ? 'شهر' : 'سنة'}
+                              </span>
+                              <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: '#22c55e', color: '#000' }}>
+                                خصم 20%
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-2xl font-black num" style={{ color: accent }}>
+                                {fmt(plan.price, 0)}
+                              </span>
+                              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                {plan.currency} / {plan.period === 'monthly' ? 'شهر' : 'سنة'}
+                              </span>
+                            </>
+                          )}
                         </div>
                         <ul className="flex flex-col gap-1">
                           {plan.features.slice(0, 3).map((f) => (
@@ -446,26 +477,62 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {/* Referral banner */}
-          <div
-            className="rounded-2xl p-5 flex items-start gap-4"
-            style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)' }}
-          >
+          {/* Discount badge */}
+          {hasDiscount && !user?.is_pro && (
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(34,197,94,0.15)' }}
+              className="rounded-xl p-4 flex items-center gap-3"
+              style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.35)' }}
             >
-              <Gift size={20} style={{ color: 'var(--success)' }} />
+              <Gift size={20} style={{ color: '#22c55e', flexShrink: 0 }} />
+              <div>
+                <p className="font-bold text-sm" style={{ color: '#22c55e' }}>
+                  لديك خصم 20% جاهز!
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  سيُطبَّق تلقائياً على اشتراكك — عدد الخصومات المتاحة: {user?.discount_credits}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm" style={{ color: 'var(--success)' }}>
-                ادعُ أصدقائك واحصل على خصم 20%
+          )}
+
+          {/* Referral link */}
+          {user && referralLink && (
+            <div
+              className="rounded-2xl p-5 space-y-3"
+              style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)' }}
+            >
+              <div className="flex items-center gap-2">
+                <Gift size={18} style={{ color: 'var(--success)' }} />
+                <p className="font-bold text-sm" style={{ color: 'var(--success)' }}>
+                  ادعُ أصدقائك واحصل على خصم 20%
+                </p>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                شارك الرابط ده — أي حد يسجّل بيه هياخد خصم 20% على أول اشتراك، وإنت هتاخد خصم 20% على تجديدك الجاي.
               </p>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                شارك EGX Radar مع صديق — لما يشترك، هتاخد خصم 20% من الشهر الجاي تلقائياً.
-              </p>
+              <div
+                className="flex items-center gap-2 rounded-lg px-3 py-2"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)' }}
+              >
+                <Link2 size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <span className="flex-1 text-xs font-mono truncate" style={{ color: 'var(--text-secondary)', direction: 'ltr' }}>
+                  {referralLink}
+                </span>
+                <button
+                  onClick={copyLink}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold shrink-0 transition-colors"
+                  style={{
+                    background: copied ? 'rgba(34,197,94,0.2)' : 'var(--bg-surface)',
+                    color:      copied ? '#22c55e' : 'var(--text-muted)',
+                    border:     '1px solid var(--border-default)',
+                  }}
+                >
+                  <Copy size={11} />
+                  {copied ? 'تم!' : 'نسخ'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Billing history */}
           {user && <BillingHistory items={history} />}

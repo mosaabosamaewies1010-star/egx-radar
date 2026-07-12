@@ -294,7 +294,7 @@ describe('DashboardPage — WGT-091 quick actions', () => {
   });
 
   it('hides PRO action tile when user is already pro', () => {
-    mockStore.user = { id: 1, email: 'p@t.com', is_pro: true, name: null, created_at: '' };
+    mockStore.user = { id: 1, email: 'p@t.com', is_pro: true, name: null, created_at: '', referral_code: null, discount_credits: 0, referred_by_id: null };
     render(<DashboardPage />);
     // WGT-091 PRO tile should be gone; PRO badge may still appear in nav
     const wgt = document.querySelector('[data-widget-id="WGT-091"]');

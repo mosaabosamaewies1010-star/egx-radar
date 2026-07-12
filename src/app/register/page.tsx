@@ -1,14 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff, UserPlus, Gift } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 
 /** WGT-021 */
 export default function RegisterPage() {
-  const router = useRouter();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const { setUser, setToken, user } = useAppStore();
 
   const [name,     setName]     = useState('');
@@ -17,10 +18,20 @@ export default function RegisterPage() {
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
+  const [refCode,  setRefCode]  = useState<string | null>(null);
 
   useEffect(() => {
     if (user) router.replace('/');
-  }, [user, router]);
+    // اقرأ ?ref= من الـ URL واحفظه
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setRefCode(ref.toUpperCase());
+      localStorage.setItem('egx_ref', ref.toUpperCase());
+    } else {
+      const stored = localStorage.getItem('egx_ref');
+      if (stored) setRefCode(stored);
+    }
+  }, [user, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +44,9 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await api.register(email.trim().toLowerCase(), password, name.trim() || undefined);
+      const ref = refCode || localStorage.getItem('egx_ref') || undefined;
+      const res = await api.register(email.trim().toLowerCase(), password, name.trim() || undefined, ref ?? undefined);
+      localStorage.removeItem('egx_ref');
       setToken(res.token);
       setUser(res.user);
       router.push('/');
@@ -78,6 +91,17 @@ export default function RegisterPage() {
             انضم إلى رادار البورصة المصرية
           </p>
         </div>
+
+        {/* Referral banner */}
+        {refCode && (
+          <div
+            className="rounded-lg px-4 py-3 text-sm flex items-center gap-2"
+            style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}
+          >
+            <Gift size={15} style={{ flexShrink: 0 }} />
+            <span>لديك دعوة من صديق — ستحصل على خصم 20% على أول اشتراك!</span>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
