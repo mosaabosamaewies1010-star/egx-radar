@@ -313,7 +313,6 @@ export default function StockPage() {
                 <RadarScoreDisplay score={data.score} size="lg" lang="ar" animate />
                 <SignalQualityBadge
                   quality={opp?.signal_quality ?? 'MEDIUM'}
-                  score={data.score}
                   lang="ar"
                 />
               </>
