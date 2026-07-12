@@ -21,6 +21,7 @@ interface AdminHealth {
     total_closed: number;
     wins:         number;
     losses:       number;
+    expired:      number;
     win_rate:     number | null;
   };
   sra: {
@@ -757,9 +758,9 @@ export default function AdminPage() {
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
-                  label="Win Rate"
+                  label="Win Rate (WIN÷(WIN+LOSS))"
                   value={data.performance.win_rate != null ? `${fmt(data.performance.win_rate, 1)}%` : '—'}
-                  sub={`${data.performance.total_closed} صفقة مغلقة`}
+                  sub={`${data.performance.wins + data.performance.losses} صفقة محسومة`}
                   color={
                     data.performance.win_rate == null ? undefined :
                     data.performance.win_rate >= 60 ? '#22c55e' :
@@ -767,19 +768,20 @@ export default function AdminPage() {
                   }
                 />
                 <StatCard
-                  label="صفقات رابحة"
+                  label="صفقات رابحة ✅"
                   value={data.performance.wins}
                   color="#22c55e"
                 />
                 <StatCard
-                  label="صفقات خاسرة"
+                  label="صفقات خاسرة ❌"
                   value={data.performance.losses}
                   color="#ef4444"
                 />
                 <StatCard
-                  label="متوسط SRA Score"
-                  value={data.sra.avg_score != null ? fmt(data.sra.avg_score, 1) : '—'}
-                  sub="للإشارات المفتوحة"
+                  label="منتهية المدة ⏱"
+                  value={data.performance.expired ?? 0}
+                  sub="لم تصل TP أو SL"
+                  color="var(--text-muted)"
                 />
               </div>
             </section>
