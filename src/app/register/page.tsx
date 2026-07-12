@@ -1,13 +1,13 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, UserPlus, Gift } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 
-/** WGT-021 */
-export default function RegisterPage() {
+/** WGT-021 — inner component uses useSearchParams, must be inside Suspense */
+function RegisterForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { setUser, setToken, user } = useAppStore();
@@ -230,5 +230,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }
