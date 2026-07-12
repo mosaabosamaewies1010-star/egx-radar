@@ -190,7 +190,7 @@ export default function PaymentsPage() {
 
   const selectedPlanObj = plansData?.plans.find((p) => p.id === selectedPlan);
   const accountNumber   = selectedMethod ? plansData?.accounts[selectedMethod] : null;
-  const hasDiscount     = (user?.discount_credits ?? 0) > 0;
+  const hasDiscount     = user?.has_referral_discount || (user?.discount_credits ?? 0) > 0;
   const referralLink    = user?.referral_code
     ? `${typeof window !== 'undefined' ? window.location.origin : 'https://egxradar.com'}/register?ref=${user.referral_code}`
     : null;

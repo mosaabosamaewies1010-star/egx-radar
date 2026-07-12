@@ -399,14 +399,15 @@ export interface PortfolioResponse {
 // ── Slice 3: Auth ─────────────────────────────────────────────────────────────
 
 export interface User {
-  id:               number;
-  email:            string;
-  name:             string | null;
-  is_pro:           boolean;
-  referral_code:    string | null;
-  discount_credits: number;
-  referred_by_id:   number | null;
-  created_at:       string;
+  id:                    number;
+  email:                 string;
+  name:                  string | null;
+  is_pro:                boolean;
+  referral_code:         string | null;
+  discount_credits:      number;
+  referred_by_id:        number | null;
+  has_referral_discount: boolean;
+  created_at:            string;
 }
 
 export interface AuthResponse {
