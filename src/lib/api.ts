@@ -2,7 +2,7 @@
  * EGX Radar API Client
  * Typed wrappers for the Flask backend at localhost:5001
  */
-import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse } from './types';
+import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse, TradeHistoryResponse } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
 
@@ -239,6 +239,19 @@ export const api = {
   /** Historical performance stats — win rate, profit factor, by year/sector/version */
   getPerformance(): Promise<PerformanceResponse> {
     return apiFetch<PerformanceResponse>('/api/performance');
+  },
+
+  /** Paginated list of closed trades for the trade-history table */
+  getTradeHistory(opts?: {
+    limit?: number; offset?: number; outcome?: string; symbol?: string;
+  }): Promise<TradeHistoryResponse> {
+    const p = new URLSearchParams();
+    if (opts?.limit)   p.set('limit',   String(opts.limit));
+    if (opts?.offset)  p.set('offset',  String(opts.offset));
+    if (opts?.outcome) p.set('outcome', opts.outcome);
+    if (opts?.symbol)  p.set('symbol',  opts.symbol);
+    const qs = p.toString() ? `?${p}` : '';
+    return apiFetch<TradeHistoryResponse>(`/api/performance/trades${qs}`);
   },
 
   // ── Discover ──────────────────────────────────────────────────────────────

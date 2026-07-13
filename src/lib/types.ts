@@ -485,3 +485,36 @@ export interface PerformanceResponse {
   top_stocks: PerformanceTopStock[];
 }
 
+export interface TradeRecord {
+  id:             number;
+  symbol:         string;
+  name_ar:        string;
+  sector:         string | null;
+  is_sharia:      boolean;
+  opp_type:       string;
+  radar_score:    number;
+  signal_quality: string | null;
+  run_date:       string;
+  closed_at:      string | null;
+  hold_days:      number | null;
+  outcome:        'WIN' | 'LOSS' | 'EXPIRED';
+  exit_reason:    string | null;
+  pnl_pct:        number | null;
+  entry_price:    number;
+  exit_price:     number | null;
+  tp1_price:      number;
+  tp2_price:      number;
+  sl_price:       number;
+  rr_ratio:       number | null;
+  regime:         string | null;
+  sra_grade:      string | null;
+  sra_score:      number | null;
+}
+
+export interface TradeHistoryResponse {
+  total:  number;
+  limit:  number;
+  offset: number;
+  trades: TradeRecord[];
+}
+
