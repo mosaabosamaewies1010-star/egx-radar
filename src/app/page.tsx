@@ -117,7 +117,7 @@ function QuickActions({ isProUser }: { isProUser: boolean }) {
     : QUICK_ACTIONS;
 
   return (
-    <div data-widget-id="WGT-091" className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+    <div data-widget-id="WGT-091" className="grid grid-cols-3 sm:grid-cols-6 gap-3 md:hidden">
       {actions.map(({ href, icon: Icon, label, accent }) => (
         <Link
           key={href}
@@ -194,8 +194,8 @@ function OppRow({ item, lang, rank }: { item: OpportunityListItem; lang: 'ar' | 
       </div>
 
       <div className="hidden md:flex flex-col items-end gap-0.5 shrink-0 w-24 text-xs">
-        <span style={{ color: 'var(--success)' }}>دخول {item.levels.entry.toFixed(2)}</span>
-        <span style={{ color: 'var(--text-muted)' }}>هدف {item.levels.tp1.toFixed(2)}</span>
+        <span style={{ color: 'var(--text-secondary)' }}>دخول {item.levels.entry.toFixed(2)}</span>
+        <span style={{ color: 'var(--success)' }}>هدف {item.levels.tp1.toFixed(2)}</span>
         <span style={{ color: 'var(--error)' }}>وقف {item.levels.sl.toFixed(2)}</span>
       </div>
     </Link>

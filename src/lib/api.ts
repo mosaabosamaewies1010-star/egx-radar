@@ -2,7 +2,7 @@
  * EGX Radar API Client
  * Typed wrappers for the Flask backend at localhost:5001
  */
-import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse, TradeHistoryResponse } from './types';
+import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, PortfolioHealth, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
 
@@ -87,10 +87,10 @@ export const api = {
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   /** Register a new account — returns JWT + user profile */
-  register(email: string, password: string, name?: string, ref?: string): Promise<AuthResponse> {
+  register(email: string, password: string, name?: string): Promise<AuthResponse> {
     return apiFetch<AuthResponse>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name, ref }),
+      body: JSON.stringify({ email, password, name }),
     });
   },
 
@@ -112,6 +112,10 @@ export const api = {
   /** List all holdings + portfolio summary */
   getPortfolio(): Promise<PortfolioResponse> {
     return apiFetch<PortfolioResponse>('/api/portfolio');
+  },
+
+  getPortfolioHealth(): Promise<PortfolioHealth> {
+    return apiFetch<PortfolioHealth>('/api/portfolio/health');
   },
 
   /** Add a new open position */
@@ -203,7 +207,7 @@ export const api = {
   },
 
   /** Create a pending payment for the chosen plan (JWT required) */
-  subscribe(plan: 'pro_monthly' | 'pro_annual'): Promise<SubscribeResponse> {
+  subscribe(plan: 'pro_weekly' | 'pro_monthly' | 'pro_annual'): Promise<SubscribeResponse> {
     return apiFetch<SubscribeResponse>('/api/payments/subscribe', {
       method: 'POST',
       body: JSON.stringify({ plan }),
@@ -239,19 +243,6 @@ export const api = {
   /** Historical performance stats — win rate, profit factor, by year/sector/version */
   getPerformance(): Promise<PerformanceResponse> {
     return apiFetch<PerformanceResponse>('/api/performance');
-  },
-
-  /** Paginated list of closed trades for the trade-history table */
-  getTradeHistory(opts?: {
-    limit?: number; offset?: number; outcome?: string; symbol?: string;
-  }): Promise<TradeHistoryResponse> {
-    const p = new URLSearchParams();
-    if (opts?.limit)   p.set('limit',   String(opts.limit));
-    if (opts?.offset)  p.set('offset',  String(opts.offset));
-    if (opts?.outcome) p.set('outcome', opts.outcome);
-    if (opts?.symbol)  p.set('symbol',  opts.symbol);
-    const qs = p.toString() ? `?${p}` : '';
-    return apiFetch<TradeHistoryResponse>(`/api/performance/trades${qs}`);
   },
 
   // ── Discover ──────────────────────────────────────────────────────────────

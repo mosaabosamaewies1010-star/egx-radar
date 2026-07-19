@@ -80,6 +80,20 @@ function atrToRisk(atrPct: number) {
   return 'LOW' as const;
 }
 
+// ── Number formatting — never show a fabricated value for missing data ────────
+function fmtBig(n: number | null | undefined): string {
+  if (n == null) return '—';
+  if (n >= 1e9) return `${(n / 1e9).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} مليار`;
+  if (n >= 1e6) return `${(n / 1e6).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} مليون`;
+  if (n >= 1e3) return `${(n / 1e3).toLocaleString('ar-EG', { maximumFractionDigits: 0 })} ألف`;
+  return n.toLocaleString('ar-EG');
+}
+
+function fmtNum(n: number | null | undefined, d = 2): string {
+  if (n == null) return '—';
+  return n.toLocaleString('ar-EG', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function StockPage() {
   const params = useParams<{ symbol: string }>();
@@ -313,6 +327,7 @@ export default function StockPage() {
                 <RadarScoreDisplay score={data.score} size="lg" lang="ar" animate />
                 <SignalQualityBadge
                   quality={opp?.signal_quality ?? 'MEDIUM'}
+                  score={data.score}
                   lang="ar"
                 />
               </>
@@ -421,35 +436,53 @@ export default function StockPage() {
           </Card>
         </div>
 
-        {/* ── Momentum Opportunity ────────────────────────────────── */}
-        {opp && (
-          <section className="space-y-3">
-            <div ref={oppRef}>
-              <div className="flex items-center gap-2">
-                <Star size={16} style={{ color: 'var(--accent-gold)' }} />
-                <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>الفرصة المكتشفة</h2>
-              </div>
-              <OpportunityCard
-                symbol={symbol}
-                nameAr={data.name_ar}
-                score={data.score}
-                entry={opp.levels.entry}
-                tp1={opp.levels.tp1}
-                tp2={opp.levels.tp2}
-                sl={opp.levels.sl}
-                currentPrice={data.price ?? opp.levels.entry}
-                changeAmt={data.change_amt ?? 0}
-                changePct={data.change_pct ?? 0}
-                holdDays={opp.levels.max_hold_days}
-                signalQuality={opp.signal_quality}
-                type={opp.type}
-                lang="ar"
-                reason={opp.reason?.ar}
-                signalHistory={[]}
+        {/* ── Day Stats + Fundamentals ─────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <Card padding="lg" className="space-y-3">
+            <CardTitle>بيانات السهم</CardTitle>
+            {data.day_stats?.close != null ? (
+              <MetricGrid
+                cols={2}
+                metrics={[
+                  { label: 'الافتتاح',      value: fmtNum(data.day_stats.open) },
+                  { label: 'الأعلى',        value: fmtNum(data.day_stats.high) },
+                  { label: 'الأدنى',        value: fmtNum(data.day_stats.low) },
+                  { label: 'الإغلاق',       value: fmtNum(data.day_stats.close) },
+                  { label: 'حجم التداول',   value: fmtBig(data.day_stats.volume) },
+                  { label: 'قيمة التداول',  value: `${fmtBig(data.day_stats.value)} ج.م` },
+                ]}
               />
-            </div>
-          </section>
-        )}
+            ) : (
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                بيانات اليوم لسه معملتش تحديث — هتظهر بعد أول مسح يومي
+              </p>
+            )}
+          </Card>
+
+          <Card padding="lg" className="space-y-3">
+            <CardTitle>الأساسيات</CardTitle>
+            {data.fundamentals?.market_cap != null || data.fundamentals?.pe_ratio != null ? (
+              <MetricGrid
+                cols={2}
+                metrics={[
+                  { label: 'القيمة السوقية',     value: `${fmtBig(data.fundamentals?.market_cap)} ج.م` },
+                  { label: 'مكرر الربحية (P/E)',  value: fmtNum(data.fundamentals?.pe_ratio, 2) },
+                  { label: 'ربحية السهم (EPS)',   value: data.fundamentals?.eps != null ? `${fmtNum(data.fundamentals.eps)} ج.م` : '—' },
+                  { label: 'عائد التوزيع',        value: data.fundamentals?.dividend_yield != null ? `${fmtNum(data.fundamentals.dividend_yield, 2)}%` : '—' },
+                  { label: 'أعلى 52 أسبوع',       value: fmtNum(data.fundamentals?.week52_high) },
+                  { label: 'أدنى 52 أسبوع',       value: fmtNum(data.fundamentals?.week52_low) },
+                ]}
+              />
+            ) : (
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                بيانات الأساسيات لسه معملتش تحديث — هتظهر بعد أول مسح يومي
+              </p>
+            )}
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-disabled)' }}>
+              مصدر بيانات الأساسيات خارجي وقد لا يغطي كل الأسهم بالكامل
+            </p>
+          </Card>
+        </div>
 
         {/* ── SRA Opportunity (Primary Engine) ────────────────────── */}
         {sra && (
@@ -533,6 +566,7 @@ export default function StockPage() {
                       href="/payments"
                       className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-opacity hover:opacity-90"
                       style={{ background: 'var(--accent-gold)', color: '#000', fontSize: 'var(--text-sm)' }}
+                      onClick={() => track('pro_upgrade_clicked', { symbol, source: 'stock_page' })}
                     >
                       ترقية إلى PRO — 299 جنيه/شهر
                     </Link>
@@ -575,6 +609,36 @@ export default function StockPage() {
               البوت يبحث عن إشارات SRA يومياً بعد إغلاق السوق
             </p>
           </Card>
+        )}
+
+        {/* ── Sector Peers ─────────────────────────────────────────── */}
+        {data.sector_peers && data.sector_peers.length > 0 && (
+          <section className="space-y-3">
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              أسهم في نفس القطاع — {data.sector}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {data.sector_peers.map((p) => (
+                <Link
+                  key={p.symbol}
+                  href={`/stocks/${p.symbol}`}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors hover:opacity-80"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+                >
+                  <span className="font-bold text-sm">{p.symbol}</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{p.name_ar}</span>
+                  {p.change_pct != null && (
+                    <span
+                      className="text-xs font-medium num"
+                      style={{ color: p.change_pct >= 0 ? 'var(--success)' : 'var(--error)' }}
+                    >
+                      {p.change_pct >= 0 ? '+' : ''}{p.change_pct.toFixed(2)}%
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* ── Disclaimer ──────────────────────────────────────────── */}

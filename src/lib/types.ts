@@ -97,6 +97,30 @@ export interface StockData {
   price?:       number;
   change_amt?:  number;
   change_pct?:  number;
+  day_stats?: {
+    open:       number | null;
+    high:       number | null;
+    low:        number | null;
+    close:      number | null;
+    volume:     number | null;
+    value:      number | null;
+    updated_at: string | null;
+  };
+  fundamentals?: {
+    market_cap:     number | null;
+    pe_ratio:       number | null;
+    eps:            number | null;
+    dividend_yield: number | null;
+    week52_high:    number | null;
+    week52_low:     number | null;
+    book_value:     number | null;
+    updated_at:     string | null;
+  };
+  sector_peers?: Array<{
+    symbol:     string;
+    name_ar:    string;
+    change_pct: number | null;
+  }>;
 }
 
 export interface MarketRegime {
@@ -150,7 +174,7 @@ export interface Plan {
   name_ar:  string;
   price:    number;
   currency: string;
-  period:   'monthly' | 'annual';
+  period:   'weekly' | 'monthly' | 'annual';
   savings:  string | null;
   features: string[];
 }
@@ -161,21 +185,14 @@ export interface PlansResponse {
 }
 
 export interface PaymentRecord {
-  id:             number;
-  user_id:        number;
-  plan:           string;
-  amount:         number;
-  currency:       string;
-  status:         'pending' | 'completed' | 'failed' | 'refunded' | 'rejected';
-  provider_ref:   string | null;
-  payment_method: string | null;
-  has_receipt:    boolean;
-  admin_note:     string | null;
-  created_at:     string;
-  // admin-only fields
-  receipt_image?: string | null;
-  user_email?:    string | null;
-  user_name?:     string | null;
+  id:           number;
+  user_id:      number;
+  plan:         string;
+  amount:       number;
+  currency:     string;
+  status:       'pending' | 'completed' | 'failed' | 'refunded';
+  provider_ref: string | null;
+  created_at:   string;
 }
 
 export interface SubscribeResponse {
@@ -396,18 +413,33 @@ export interface PortfolioResponse {
   holdings: PortfolioHolding[];
 }
 
+export interface PortfolioHealth {
+  health_score: number | null;
+  message?:     string | null;
+  components: {
+    diversification: { score: number; max: number; top_sector?: string; top_sector_pct?: number };
+    risk:             { score: number; max: number; weighted_atr_pct: number | null };
+    technical_quality: { score: number; max: number; weighted_radar_score: number | null };
+    performance:      { score: number; max: number; return_pct: number | null };
+  };
+  warnings:        string[];
+  recommendations: string[];
+  positions: Array<{
+    symbol: string; name_ar: string; sector: string | null;
+    weight_pct: number; cost_basis: number;
+    radar_score: number | null; atr_pct: number | null;
+  }>;
+}
+
 // ── Slice 3: Auth ─────────────────────────────────────────────────────────────
 
 export interface User {
-  id:                    number;
-  email:                 string;
-  name:                  string | null;
-  is_pro:                boolean;
-  referral_code:         string | null;
-  discount_credits:      number;
-  referred_by_id:        number | null;
-  has_referral_discount: boolean;
-  created_at:            string;
+  id:             number;
+  email:          string;
+  name:           string | null;
+  is_pro:         boolean;
+  pro_expires_at: string | null;
+  created_at:     string;
 }
 
 export interface AuthResponse {
@@ -483,38 +515,5 @@ export interface PerformanceResponse {
   by_sector:  PerformanceBySector[];
   by_version: PerformanceByVersion[];
   top_stocks: PerformanceTopStock[];
-}
-
-export interface TradeRecord {
-  id:             number;
-  symbol:         string;
-  name_ar:        string;
-  sector:         string | null;
-  is_sharia:      boolean;
-  opp_type:       string;
-  radar_score:    number;
-  signal_quality: string | null;
-  run_date:       string;
-  closed_at:      string | null;
-  hold_days:      number | null;
-  outcome:        'WIN' | 'LOSS' | 'EXPIRED';
-  exit_reason:    string | null;
-  pnl_pct:        number | null;
-  entry_price:    number;
-  exit_price:     number | null;
-  tp1_price:      number;
-  tp2_price:      number;
-  sl_price:       number;
-  rr_ratio:       number | null;
-  regime:         string | null;
-  sra_grade:      string | null;
-  sra_score:      number | null;
-}
-
-export interface TradeHistoryResponse {
-  total:  number;
-  limit:  number;
-  offset: number;
-  trades: TradeRecord[];
 }
 

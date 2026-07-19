@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, X, TrendingUp, TrendingDown, Minus, ChevronUp } from 'lucide-react';
+import { Plus, X, TrendingUp, TrendingDown, Minus, ChevronUp, HeartPulse, AlertTriangle, Lightbulb } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import type { PortfolioHolding, PortfolioSummary } from '@/lib/types';
+import type { PortfolioHolding, PortfolioSummary, PortfolioHealth } from '@/lib/types';
 import {
   Card, CardHeader, CardTitle, CardBody,
   ErrorState, WidgetSkeleton, MetricCard,
@@ -69,6 +69,104 @@ function SummaryBar({ summary }: { summary: PortfolioSummary }) {
         suffix=" ج.م"
         widgetId="WGT-022-realized"
       />
+    </Card>
+  );
+}
+
+// ── WGT-025: Portfolio Health ─────────────────────────────────────────────────
+
+function healthColor(score: number): string {
+  if (score >= 70) return 'var(--success)';
+  if (score >= 40) return '#f59e0b';
+  return 'var(--error)';
+}
+
+function HealthBar({ label, score, max, sub }: { label: string; score: number; max: number; sub?: string }) {
+  const pct = Math.min((score / max) * 100, 100);
+  const color = healthColor(pct);
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{label}</span>
+        <span className="num" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+          {score.toFixed(1)} / {max}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      {sub && <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{sub}</p>}
+    </div>
+  );
+}
+
+function PortfolioHealthCard({ health }: { health: PortfolioHealth }) {
+  if (health.health_score == null) {
+    return (
+      <Card widgetId="WGT-025" padding="lg">
+        <CardHeader><CardTitle icon={<HeartPulse size={16} />}>صحة المحفظة</CardTitle></CardHeader>
+        <CardBody>
+          <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+            {health.message ?? 'مفيش بيانات كافية لحساب صحة المحفظة'}
+          </p>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  const c = health.components;
+  const color = healthColor(health.health_score);
+
+  return (
+    <Card widgetId="WGT-025" padding="lg" className="space-y-4">
+      <CardHeader>
+        <CardTitle icon={<HeartPulse size={16} />}>صحة المحفظة</CardTitle>
+      </CardHeader>
+
+      <div className="flex items-center gap-4">
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center font-black num shrink-0"
+          style={{ background: `${color}18`, border: `2px solid ${color}`, color, fontSize: 'var(--text-2xl)' }}
+        >
+          {Math.round(health.health_score)}
+        </div>
+        <div className="flex-1 space-y-3">
+          <HealthBar label="التنويع" score={c.diversification.score} max={c.diversification.max}
+            sub={c.diversification.top_sector ? `أعلى قطاع: ${c.diversification.top_sector} (${c.diversification.top_sector_pct}%)` : undefined} />
+          <HealthBar label="المخاطرة" score={c.risk.score} max={c.risk.max}
+            sub={c.risk.weighted_atr_pct != null ? `متوسط التقلب (ATR) مرجّح: ${c.risk.weighted_atr_pct}%` : undefined} />
+          <HealthBar label="الجودة الفنية" score={c.technical_quality.score} max={c.technical_quality.max}
+            sub={c.technical_quality.weighted_radar_score != null ? `متوسط radar_score مرجّح: ${c.technical_quality.weighted_radar_score}/100` : undefined} />
+          <HealthBar label="الأداء" score={c.performance.score} max={c.performance.max}
+            sub={c.performance.return_pct != null ? `العائد الكلي: ${c.performance.return_pct > 0 ? '+' : ''}${c.performance.return_pct}%` : undefined} />
+        </div>
+      </div>
+
+      {health.warnings.length > 0 && (
+        <div className="space-y-1.5 pt-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          {health.warnings.map((w, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <AlertTriangle size={13} style={{ color: '#f59e0b', marginTop: 2, flexShrink: 0 }} />
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{w}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {health.recommendations.length > 0 && (
+        <div className="space-y-1.5">
+          {health.recommendations.map((r, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <Lightbulb size={13} style={{ color: 'var(--accent-primary)', marginTop: 2, flexShrink: 0 }} />
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{r}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-disabled)' }}>
+        الأداء محسوب من إجمالي الربح/الخسارة (محقق وغير محقق) على رأس المال المستثمر — بدون مقارنة بمؤشر EGX30 حاليًا
+      </p>
     </Card>
   );
 }
@@ -432,26 +530,29 @@ function AddPositionForm({
 export default function PortfolioPage() {
   const [summary,    setSummary]    = useState<PortfolioSummary | null>(null);
   const [holdings,   setHoldings]   = useState<PortfolioHolding[]>([]);
+  const [health,     setHealth]     = useState<PortfolioHealth | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
-  const [proLocked,  setProLocked]  = useState(false);
   const [closingId,  setClosingId]  = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setProLocked(false);
     try {
       const data = await api.getPortfolio();
       setSummary(data.summary);
       setHoldings(data.holdings);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
-        setProLocked(true);
-      } else {
-        setError('تعذّر تحميل المحفظة');
-      }
+    } catch {
+      setError('تعذّر تحميل المحفظة');
+      setLoading(false);
+      return;
+    }
+    // منفصلة عن التحميل الأساسي — لو فشلت، القايمة والملخص لسه بيظهروا عادي
+    try {
+      setHealth(await api.getPortfolioHealth());
+    } catch {
+      setHealth(null);
     } finally {
       setLoading(false);
     }
@@ -481,6 +582,7 @@ export default function PortfolioPage() {
       const data = await api.getPortfolio();
       setSummary(data.summary);
       setHoldings(data.holdings);
+      try { setHealth(await api.getPortfolioHealth()); } catch { setHealth(null); }
     } finally {
       setDeletingId(null);
     }
@@ -508,31 +610,12 @@ export default function PortfolioPage() {
           <div className="rounded-2xl overflow-hidden"><WidgetSkeleton rows={1} /></div>
           <div className="rounded-2xl overflow-hidden"><WidgetSkeleton rows={5} /></div>
         </>
-      ) : proLocked ? (
-        <div
-          className="rounded-2xl p-8 flex flex-col items-center gap-4 text-center"
-          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
-        >
-          <span style={{ fontSize: 40 }}>🔒</span>
-          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-            المحفظة للمشتركين PRO فقط
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            تتبّع مراكزك ومتوسطات الشراء وأرباحك وخسائرك مع اشتراك PRO
-          </p>
-          <a
-            href="/payments"
-            className="px-6 py-2 rounded-lg font-bold text-sm transition-opacity hover:opacity-90"
-            style={{ background: 'var(--accent-gold)', color: '#000' }}
-          >
-            ترقية إلى PRO
-          </a>
-        </div>
       ) : error ? (
         <ErrorState scenario="network" onRetry={load} />
       ) : (
         <>
           {summary && <SummaryBar summary={summary} />}
+          {health && <PortfolioHealthCard health={health} />}
           <AddPositionForm onAdd={handleAdd} />
           <HoldingsList
             holdings={holdings}
