@@ -2,7 +2,7 @@
  * EGX Radar API Client
  * Typed wrappers for the Flask backend at localhost:5001
  */
-import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, PortfolioHealth, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse } from './types';
+import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, PortfolioHealth, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse, TradeHistoryResponse } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
 
@@ -87,10 +87,10 @@ export const api = {
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   /** Register a new account — returns JWT + user profile */
-  register(email: string, password: string, name?: string): Promise<AuthResponse> {
+  register(email: string, password: string, name?: string, referral_code?: string): Promise<AuthResponse> {
     return apiFetch<AuthResponse>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, referral_code }),
     });
   },
 
@@ -243,6 +243,21 @@ export const api = {
   /** Historical performance stats — win rate, profit factor, by year/sector/version */
   getPerformance(): Promise<PerformanceResponse> {
     return apiFetch<PerformanceResponse>('/api/performance');
+  },
+
+  getTradeHistory(opts?: {
+    limit?:   number;
+    offset?:  number;
+    outcome?: string;
+    symbol?:  string;
+  }): Promise<TradeHistoryResponse> {
+    const params = new URLSearchParams();
+    if (opts?.limit   != null) params.set('limit',   String(opts.limit));
+    if (opts?.offset  != null) params.set('offset',  String(opts.offset));
+    if (opts?.outcome)         params.set('outcome', opts.outcome);
+    if (opts?.symbol)          params.set('symbol',  opts.symbol);
+    const qs = params.toString() ? `?${params}` : '';
+    return apiFetch<TradeHistoryResponse>(`/api/performance/trades${qs}`);
   },
 
   // ── Discover ──────────────────────────────────────────────────────────────

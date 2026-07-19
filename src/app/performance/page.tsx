@@ -256,7 +256,7 @@ function TradeRow({ t }: { t: TradeRecord }) {
       {/* السعر */}
       <td className="px-4 py-3 text-right whitespace-nowrap">
         <div className="text-xs num space-y-0.5">
-          <div style={{ color: 'var(--text-secondary)' }}>دخول {t.entry_price.toFixed(2)}</div>
+          <div style={{ color: 'var(--text-secondary)' }}>دخول {t.entry_price?.toFixed(2) ?? '—'}</div>
           {t.exit_price && <div style={{ color: pnlPos ? '#22c55e' : '#ef4444' }}>خروج {t.exit_price.toFixed(2)}</div>}
         </div>
       </td>

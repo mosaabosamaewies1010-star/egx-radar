@@ -517,3 +517,36 @@ export interface PerformanceResponse {
   top_stocks: PerformanceTopStock[];
 }
 
+export interface TradeRecord {
+  id:             number;
+  symbol:         string;
+  name_ar:        string | null;
+  sector:         string | null;
+  is_sharia:      boolean | null;
+  opp_type:       string;
+  radar_score:    number;
+  signal_quality: string | null;
+  run_date:       string | null;
+  closed_at:      string | null;
+  hold_days:      number | null;
+  outcome:        string;
+  exit_reason:    string | null;
+  pnl_pct:        number | null;
+  entry_price:    number | null;
+  exit_price:     number | null;
+  tp1_price:      number | null;
+  tp2_price:      number | null;
+  sl_price:       number | null;
+  rr_ratio:       number | null;
+  regime:         string | null;
+  sra_grade:      string | null;
+  sra_score:      number | null;
+}
+
+export interface TradeHistoryResponse {
+  total:  number;
+  limit:  number;
+  offset: number;
+  trades: TradeRecord[];
+}
+
