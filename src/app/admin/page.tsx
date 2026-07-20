@@ -12,11 +12,13 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
 interface AdminHealth {
   as_of: string;
   signals: {
-    today:    number;
-    sra_open: number;
-    all_open: number;
-    sra_7d:   number;
-    sra_30d:  number;
+    today:      number;
+    sra_open:   number;
+    all_open:   number;
+    sra_7d:     number;
+    sra_30d:    number;
+    trend_7d:   number;
+    trend_open: number;
   };
   performance: {
     total_closed: number;
@@ -453,30 +455,35 @@ export default function AdminPage() {
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
-                  label="إشارات اليوم"
+                  label="كل الإشارات اليوم"
                   value={data.signals.today}
+                  sub="Momentum + SRA + TREND"
                   color="var(--accent-primary)"
                   icon={<Cpu size={13} />}
                   onClick={() => toggle('signals_today')}
                   active={selected === 'signals_today'}
                 />
                 <StatCard
-                  label="SRA مفتوحة"
-                  value={data.signals.sra_open}
-                  sub={`إجمالي مفتوحة: ${data.signals.all_open}`}
+                  label="TREND مفتوحة"
+                  value={data.signals.trend_open ?? 0}
+                  sub={`7 أيام: ${data.signals.trend_7d ?? 0} إشارة`}
                   color="#22c55e"
                   icon={<TrendingUp size={13} />}
                   onClick={() => toggle('sra_open')}
                   active={selected === 'sra_open'}
                 />
                 <StatCard
-                  label="SRA آخر 7 أيام"
-                  value={data.signals.sra_7d}
+                  label="SRA مفتوحة"
+                  value={data.signals.sra_open}
+                  sub={`7 أيام: ${data.signals.sra_7d ?? 0} | 30 يوم: ${data.signals.sra_30d ?? 0}`}
+                  color="#f59e0b"
                   icon={<Activity size={13} />}
                 />
                 <StatCard
-                  label="SRA آخر 30 يوم"
-                  value={data.signals.sra_30d}
+                  label="إجمالي مفتوحة"
+                  value={data.signals.all_open}
+                  sub="كل الأنواع"
+                  color="var(--text-secondary)"
                   icon={<Activity size={13} />}
                 />
               </div>
