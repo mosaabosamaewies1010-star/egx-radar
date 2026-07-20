@@ -109,10 +109,11 @@ function StatCard({
 
 // ── Detail panel — shared drill-down area behind clickable cards ──────────────
 
-type DetailType = 'signals_today' | 'sra_open' | 'wins' | 'losses' | 'kb' | 'scored_today';
+type DetailType = 'signals_today' | 'signals_week' | 'sra_open' | 'wins' | 'losses' | 'kb' | 'scored_today';
 
 const DETAIL_TITLES: Record<DetailType, string> = {
   signals_today: 'إشارات اليوم',
+  signals_week:  'إشارات هذا الأسبوع',
   sra_open:      'صفقات SRA المفتوحة',
   wins:          'صفقات رابحة',
   losses:        'صفقات خاسرة',
@@ -124,10 +125,15 @@ interface DetailRow {
   symbol:     string | null;
   name_ar?:   string | null;
   opp_type?:  string | null;
+  grade?:     string | null;
   score?:     number | null;
+  quality?:   string | null;
   outcome?:   string | null;
   pnl_pct?:   number | null;
   entry?:     number | null;
+  tp1?:       number | null;
+  sl?:        number | null;
+  rr?:        number | null;
   run_date?:  string | null;
   closed_at?: string | null;
 }
@@ -157,6 +163,8 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
     return () => { cancelled = true; };
   }, [type]);
 
+  const isSignalType = type === 'signals_today' || type === 'signals_week' || type === 'sra_open';
+
   return (
     <section
       className="rounded-xl p-4 space-y-3"
@@ -175,7 +183,50 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
         <p className="text-center py-4" style={{ fontSize: 'var(--text-xs)', color: '#ef4444' }}>تعذّر تحميل التفاصيل</p>
       ) : !rows || rows.length === 0 ? (
         <p className="text-center py-4" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>لا توجد بيانات</p>
+      ) : isSignalType ? (
+        /* ── Signal cards: entry / TP / SL / RR ── */
+        <div className="space-y-2 max-h-[480px] overflow-y-auto">
+          {rows.map((row, i) => (
+            <div key={i} className="rounded-lg p-3 space-y-2" style={{ background: 'var(--bg-elevated)' }}>
+              {/* header row */}
+              <div className="flex items-center gap-2">
+                <span className="font-black num" style={{ fontSize: 'var(--text-sm)' }}>{row.symbol ?? '—'}</span>
+                <span className="flex-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{row.name_ar ?? ''}</span>
+                {row.score != null && (
+                  <span className="num font-bold px-1.5 py-0.5 rounded" style={{ fontSize: '11px', background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+                    {row.score.toFixed(0)}
+                  </span>
+                )}
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ color: outcomeColor(row.outcome), background: `${outcomeColor(row.outcome)}18` }}>
+                  {row.outcome ?? 'PENDING'}
+                </span>
+              </div>
+              {/* prices grid */}
+              {(row.entry != null || row.tp1 != null || row.sl != null) && (
+                <div className="grid grid-cols-4 gap-1 pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                  {[
+                    { label: 'دخول', value: row.entry, color: 'var(--text-primary)' },
+                    { label: 'هدف',  value: row.tp1,   color: '#22c55e' },
+                    { label: 'وقف',  value: row.sl,    color: '#ef4444' },
+                    { label: 'R:R',  value: row.rr,    color: '#f59e0b', fixed: 2 },
+                  ].map(({ label, value, color, fixed }) => (
+                    <div key={label} className="text-center">
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{label}</div>
+                      <div className="num font-bold" style={{ fontSize: 'var(--text-xs)', color }}>
+                        {value != null ? value.toFixed(fixed ?? 2) : '—'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {row.run_date && (
+                <div style={{ fontSize: '10px', color: 'var(--text-disabled)' }}>{row.run_date}</div>
+              )}
+            </div>
+          ))}
+        </div>
       ) : (
+        /* ── Simple rows: scored stocks, KB, wins/losses ── */
         <div className="space-y-1 max-h-80 overflow-y-auto">
           {rows.map((row, i) => (
             <div
@@ -517,15 +568,32 @@ export default function AdminPage() {
                 المسح اليومي والسوق
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <StatCard
-                  label="أسهم مصنّفة اليوم"
-                  value={data.scanner.scored_today}
-                  sub={`أيام مسح هذا الأسبوع: ${data.scanner.scan_days_7d}`}
-                  color={data.scanner.scored_today > 0 ? '#22c55e' : '#ef4444'}
-                  icon={data.scanner.scored_today > 0 ? <CheckCircle size={13} /> : <AlertCircle size={13} />}
-                  onClick={() => toggle('scored_today')}
-                  active={selected === 'scored_today'}
-                />
+                <div className="space-y-2">
+                  <StatCard
+                    label="أسهم مصنّفة اليوم"
+                    value={data.scanner.scored_today}
+                    color={data.scanner.scored_today > 0 ? '#22c55e' : '#ef4444'}
+                    icon={data.scanner.scored_today > 0 ? <CheckCircle size={13} /> : <AlertCircle size={13} />}
+                    onClick={() => toggle('scored_today')}
+                    active={selected === 'scored_today'}
+                  />
+                  <button
+                    onClick={() => toggle('signals_week')}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+                    style={{
+                      background: selected === 'signals_week' ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                      border: `1px solid ${selected === 'signals_week' ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                    }}
+                  >
+                    <ChevronLeft size={12} style={{ color: 'var(--text-disabled)' }} />
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                      إشارات هذا الأسبوع
+                    </span>
+                    <span className="num font-bold" style={{ fontSize: 'var(--text-sm)', color: 'var(--accent-primary)' }}>
+                      {data.scanner.scan_days_7d} أيام
+                    </span>
+                  </button>
+                </div>
                 <div
                   className="rounded-xl p-4 space-y-2 md:col-span-2"
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
