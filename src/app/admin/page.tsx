@@ -125,21 +125,35 @@ const DETAIL_TITLES: Record<DetailType, string> = {
 };
 
 interface DetailRow {
-  symbol:     string | null;
-  name_ar?:   string | null;
-  is_sharia?: boolean | null;
-  opp_type?:  string | null;
-  grade?:     string | null;
-  score?:     number | null;
-  quality?:   string | null;
-  outcome?:   string | null;
-  pnl_pct?:   number | null;
-  entry?:     number | null;
-  tp1?:       number | null;
-  sl?:        number | null;
-  rr?:        number | null;
-  run_date?:  string | null;
-  closed_at?: string | null;
+  symbol:           string | null;
+  name_ar?:         string | null;
+  is_sharia?:       boolean | null;
+  opp_type?:        string | null;
+  grade?:           string | null;
+  score?:           number | null;
+  quality?:         string | null;
+  outcome?:         string | null;
+  pnl_pct?:         number | null;
+  entry?:           number | null;
+  tp1?:             number | null;
+  sl?:              number | null;
+  rr?:              number | null;
+  run_date?:        string | null;
+  closed_at?:       string | null;
+  // new analysis fields
+  pivot?:           number | null;
+  r1?:              number | null;
+  r2?:              number | null;
+  s1?:              number | null;
+  s2?:              number | null;
+  money_flow_dir?:  string | null;
+  money_flow_ratio?: number | null;
+  pb_ratio?:        number | null;
+  why_signals?:     string[] | null;
+  regime?:          string | null;
+  breadth_pct?:     number | null;
+  similar_cases?:   number | null;
+  win_rate_pct?:    number | null;
 }
 
 function outcomeColor(o?: string | null): string {
@@ -147,6 +161,180 @@ function outcomeColor(o?: string | null): string {
   if (o === 'LOSS') return '#ef4444';
   if (o === 'EXPIRED') return 'var(--text-muted)';
   return '#3b82f6';
+}
+
+const SIGNAL_AR: Record<string, string> = {
+  RSI_OVERSOLD:     'RSI مبيع بإفراط',
+  RVOL_SPIKE:       'ارتفاع حجم مفاجئ',
+  BB_SQUEEZE:       'ضغط بولنجر',
+  BB_BREAKOUT:      'اختراق بولنجر',
+  OBV_BULLISH:      'OBV صاعد',
+  ADX_STRONG:       'اتجاه قوي ADX',
+  MFI_OVERSOLD:     'MFI مبيع بإفراط',
+  EMA_CROSS:        'تقاطع متوسطات',
+  RSI_BULLISH:      'RSI إيجابي',
+  SUPPORT_HOLD:     'محافظة على دعم',
+  SECTOR_POSITIVE:  'قطاع إيجابي',
+};
+
+const REGIME_AR: Record<string, string> = {
+  BEAR: 'سوق هابط', BULL: 'سوق صاعد',
+  SIDEWAYS: 'سوق عرضي', VOLATILE: 'سوق متقلب',
+  LOW_LIQUIDITY: 'سيولة منخفضة',
+};
+
+function SignalCard({ row, onNavigate }: { row: DetailRow; onNavigate: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const mfColor = row.money_flow_dir === 'IN' ? '#22c55e'
+                : row.money_flow_dir === 'OUT' ? '#ef4444'
+                : 'var(--text-muted)';
+
+  const mfLabel = row.money_flow_dir === 'IN' ? '↑ داخلة'
+                : row.money_flow_dir === 'OUT' ? '↓ خارجة'
+                : '— محايدة';
+
+  return (
+    <div className="rounded-lg space-y-0 overflow-hidden" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+
+      {/* ── Header row ── */}
+      <div
+        className="flex items-center gap-2 p-3 cursor-pointer hover:opacity-90"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className="font-black num" style={{ fontSize: 'var(--text-sm)', color: 'var(--accent-primary)' }}>{row.symbol ?? '—'}</span>
+        {row.is_sharia && (
+          <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>شريعة</span>
+        )}
+        <span className="flex-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{row.name_ar ?? ''}</span>
+        {row.grade && (
+          <span className="num font-black text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>{row.grade}</span>
+        )}
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ color: outcomeColor(row.outcome), background: `${outcomeColor(row.outcome)}18` }}>
+          {row.outcome ?? 'PENDING'}
+        </span>
+        <span style={{ fontSize: '10px', color: 'var(--text-disabled)' }}>{expanded ? '▲' : '▼'}</span>
+      </div>
+
+      {/* ── Entry / TP / SL / RR ── */}
+      {(row.entry != null || row.tp1 != null || row.sl != null) && (
+        <div className="grid grid-cols-4 gap-1 px-3 pb-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          {[
+            { label: 'دخول', value: row.entry, color: 'var(--text-primary)' },
+            { label: 'هدف',  value: row.tp1,   color: '#22c55e' },
+            { label: 'وقف',  value: row.sl,    color: '#ef4444' },
+            { label: 'R:R',  value: row.rr,    color: '#f59e0b', d: 2 },
+          ].map(({ label, value, color, d }) => (
+            <div key={label} className="text-center pt-2">
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{label}</div>
+              <div className="num font-bold" style={{ fontSize: 'var(--text-xs)', color }}>
+                {value != null ? value.toFixed(d ?? 2) : '—'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Expanded analysis ── */}
+      {expanded && (
+        <div className="px-3 pb-3 space-y-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+
+          {/* WHY signals */}
+          {(row.why_signals ?? []).length > 0 && (
+            <div className="pt-2">
+              <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)' }}>سبب الإشارة</div>
+              <div className="flex flex-wrap gap-1">
+                {(row.why_signals ?? []).map((s) => (
+                  <span key={s} className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
+                    style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
+                    {SIGNAL_AR[s] ?? s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Market context */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>السوق</div>
+              <div className="font-bold" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                {row.regime ? REGIME_AR[row.regime] ?? row.regime : '—'}
+              </div>
+            </div>
+            <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>عرض السوق</div>
+              <div className="num font-bold" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                {row.breadth_pct != null ? `${row.breadth_pct.toFixed(0)}%` : '—'}
+              </div>
+            </div>
+            <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>حالات مشابهة</div>
+              <div className="num font-bold" style={{ fontSize: '11px', color: row.similar_cases ? '#f59e0b' : 'var(--text-muted)' }}>
+                {row.similar_cases ?? 0}
+              </div>
+            </div>
+          </div>
+
+          {/* 3 new features */}
+          <div className="grid grid-cols-3 gap-2">
+            {/* Money Flow */}
+            <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>تدفق السيولة</div>
+              <div className="font-bold" style={{ fontSize: '11px', color: mfColor }}>{mfLabel}</div>
+            </div>
+            {/* P/B Ratio */}
+            <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>P/B</div>
+              <div className="num font-bold" style={{ fontSize: '11px', color: row.pb_ratio != null && row.pb_ratio < 1 ? '#22c55e' : 'var(--text-secondary)' }}>
+                {row.pb_ratio != null ? row.pb_ratio.toFixed(2) : '—'}
+              </div>
+            </div>
+            {/* Win Rate from KB */}
+            <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>نسبة الفوز</div>
+              <div className="num font-bold" style={{ fontSize: '11px', color: (row.win_rate_pct ?? 0) >= 60 ? '#22c55e' : (row.win_rate_pct ?? 0) >= 45 ? '#f59e0b' : 'var(--text-muted)' }}>
+                {row.win_rate_pct ? `${row.win_rate_pct.toFixed(0)}%` : 'KB فارغ'}
+              </div>
+            </div>
+          </div>
+
+          {/* Pivot Points */}
+          {row.pivot != null && (
+            <div>
+              <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)' }}>محاور التداول</div>
+              <div className="grid grid-cols-5 gap-1 text-center">
+                {[
+                  { label: 'S2', value: row.s2, color: '#ef444480' },
+                  { label: 'S1', value: row.s1, color: '#ef4444' },
+                  { label: 'P',  value: row.pivot, color: 'var(--text-secondary)' },
+                  { label: 'R1', value: row.r1, color: '#22c55e' },
+                  { label: 'R2', value: row.r2, color: '#22c55e80' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="rounded p-1" style={{ background: 'var(--bg-surface)' }}>
+                    <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{label}</div>
+                    <div className="num font-bold" style={{ fontSize: '10px', color }}>{value?.toFixed(2) ?? '—'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Date + navigate */}
+          <div className="flex items-center justify-between">
+            {row.run_date && <span style={{ fontSize: '10px', color: 'var(--text-disabled)' }}>{row.run_date}</span>}
+            <button
+              onClick={(e) => { e.stopPropagation(); onNavigate(); }}
+              className="text-[10px] px-2 py-1 rounded-lg"
+              style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8' }}
+            >
+              صفحة السهم ←
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void }) {
@@ -211,59 +399,14 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
       ) : !rows || rows.length === 0 ? (
         <p className="text-center py-4" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>لا توجد بيانات</p>
       ) : isSignalType ? (
-        /* ── Signal cards: entry / TP / SL / RR ── */
-        <div className="space-y-2 max-h-[480px] overflow-y-auto">
+        /* ── Signal cards with full analysis ── */
+        <div className="space-y-2 max-h-[600px] overflow-y-auto">
           {displayedRows.length === 0 ? (
             <p className="text-center py-4" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
               لا توجد إشارات شريعة
             </p>
           ) : displayedRows.map((row, i) => (
-            <div
-              key={i}
-              className="rounded-lg p-3 space-y-2 cursor-pointer hover:opacity-80 transition-opacity"
-              style={{ background: 'var(--bg-elevated)' }}
-              onClick={() => goToStock(row.symbol)}
-            >
-              {/* header row */}
-              <div className="flex items-center gap-2">
-                <span className="font-black num" style={{ fontSize: 'var(--text-sm)' }}>{row.symbol ?? '—'}</span>
-                {row.is_sharia && (
-                  <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
-                    شريعة
-                  </span>
-                )}
-                <span className="flex-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{row.name_ar ?? ''}</span>
-                {row.score != null && (
-                  <span className="num font-bold px-1.5 py-0.5 rounded" style={{ fontSize: '11px', background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
-                    {row.score.toFixed(0)}
-                  </span>
-                )}
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ color: outcomeColor(row.outcome), background: `${outcomeColor(row.outcome)}18` }}>
-                  {row.outcome ?? 'PENDING'}
-                </span>
-              </div>
-              {/* prices grid */}
-              {(row.entry != null || row.tp1 != null || row.sl != null) && (
-                <div className="grid grid-cols-4 gap-1 pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                  {[
-                    { label: 'دخول', value: row.entry, color: 'var(--text-primary)' },
-                    { label: 'هدف',  value: row.tp1,   color: '#22c55e' },
-                    { label: 'وقف',  value: row.sl,    color: '#ef4444' },
-                    { label: 'R:R',  value: row.rr,    color: '#f59e0b', fixed: 2 },
-                  ].map(({ label, value, color, fixed }) => (
-                    <div key={label} className="text-center">
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{label}</div>
-                      <div className="num font-bold" style={{ fontSize: 'var(--text-xs)', color }}>
-                        {value != null ? value.toFixed(fixed ?? 2) : '—'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {row.run_date && (
-                <div style={{ fontSize: '10px', color: 'var(--text-disabled)' }}>{row.run_date}</div>
-              )}
-            </div>
+            <SignalCard key={i} row={row} onNavigate={() => goToStock(row.symbol)} />
           ))}
         </div>
       ) : (
