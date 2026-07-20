@@ -207,8 +207,13 @@ function SignalCard({ row, onNavigate }: { row: DetailRow; onNavigate: () => voi
           <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>شريعة</span>
         )}
         <span className="flex-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{row.name_ar ?? ''}</span>
+        {row.score != null && (
+          <span className="num font-black text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+            {row.score.toFixed(0)} قوة
+          </span>
+        )}
         {row.grade && (
-          <span className="num font-black text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>{row.grade}</span>
+          <span className="num font-black text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>{row.grade}</span>
         )}
         <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ color: outcomeColor(row.outcome), background: `${outcomeColor(row.outcome)}18` }}>
           {row.outcome ?? 'PENDING'}
@@ -220,10 +225,10 @@ function SignalCard({ row, onNavigate }: { row: DetailRow; onNavigate: () => voi
       {(row.entry != null || row.tp1 != null || row.sl != null) && (
         <div className="grid grid-cols-4 gap-1 px-3 pb-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {[
-            { label: 'دخول', value: row.entry, color: 'var(--text-primary)' },
-            { label: 'هدف',  value: row.tp1,   color: '#22c55e' },
-            { label: 'وقف',  value: row.sl,    color: '#ef4444' },
-            { label: 'R:R',  value: row.rr,    color: '#f59e0b', d: 2 },
+            { label: 'دخول',       value: row.entry, color: 'var(--text-primary)' },
+            { label: 'جني أرباح', value: row.tp1,   color: '#22c55e' },
+            { label: 'وقف خسارة', value: row.sl,    color: '#ef4444' },
+            { label: 'عائد/خطر',  value: row.rr,    color: '#f59e0b', d: 2 },
           ].map(({ label, value, color, d }) => (
             <div key={label} className="text-center pt-2">
               <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{label}</div>
@@ -305,11 +310,11 @@ function SignalCard({ row, onNavigate }: { row: DetailRow; onNavigate: () => voi
               <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)' }}>محاور التداول</div>
               <div className="grid grid-cols-5 gap-1 text-center">
                 {[
-                  { label: 'S2', value: row.s2, color: '#ef444480' },
-                  { label: 'S1', value: row.s1, color: '#ef4444' },
-                  { label: 'P',  value: row.pivot, color: 'var(--text-secondary)' },
-                  { label: 'R1', value: row.r1, color: '#22c55e' },
-                  { label: 'R2', value: row.r2, color: '#22c55e80' },
+                  { label: 'دعم 2',    value: row.s2,    color: '#ef444480' },
+                  { label: 'دعم 1',    value: row.s1,    color: '#ef4444' },
+                  { label: 'محور',     value: row.pivot, color: 'var(--text-secondary)' },
+                  { label: 'مقاومة 1', value: row.r1,    color: '#22c55e' },
+                  { label: 'مقاومة 2', value: row.r2,    color: '#22c55e80' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="rounded p-1" style={{ background: 'var(--bg-surface)' }}>
                     <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{label}</div>
