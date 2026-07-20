@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { RefreshCw, Activity, TrendingUp, BookOpen, Cpu, AlertCircle, CheckCircle, ChevronLeft, X } from 'lucide-react';
 import { AppNav } from '@/components';
 import { api } from '@/lib/api';
@@ -146,9 +147,14 @@ function outcomeColor(o?: string | null): string {
 }
 
 function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void }) {
+  const router = useRouter();
   const [rows,    setRows]    = useState<DetailRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [err,     setErr]     = useState(false);
+
+  const goToStock = (symbol: string | null) => {
+    if (symbol) router.push(`/stocks/${symbol}`);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -187,7 +193,12 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
         /* ── Signal cards: entry / TP / SL / RR ── */
         <div className="space-y-2 max-h-[480px] overflow-y-auto">
           {rows.map((row, i) => (
-            <div key={i} className="rounded-lg p-3 space-y-2" style={{ background: 'var(--bg-elevated)' }}>
+            <div
+              key={i}
+              className="rounded-lg p-3 space-y-2 cursor-pointer hover:opacity-80 transition-opacity"
+              style={{ background: 'var(--bg-elevated)' }}
+              onClick={() => goToStock(row.symbol)}
+            >
               {/* header row */}
               <div className="flex items-center gap-2">
                 <span className="font-black num" style={{ fontSize: 'var(--text-sm)' }}>{row.symbol ?? '—'}</span>
@@ -231,8 +242,9 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
           {rows.map((row, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 px-2 py-1.5 rounded-lg"
+              className="flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
               style={{ background: 'var(--bg-elevated)' }}
+              onClick={() => goToStock(row.symbol)}
             >
               <span className="font-bold num w-16 shrink-0" style={{ fontSize: 'var(--text-xs)' }}>{row.symbol ?? '—'}</span>
               <span className="flex-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
