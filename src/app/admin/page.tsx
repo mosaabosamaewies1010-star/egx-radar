@@ -127,6 +127,7 @@ const DETAIL_TITLES: Record<DetailType, string> = {
 interface DetailRow {
   symbol:     string | null;
   name_ar?:   string | null;
+  is_sharia?: boolean | null;
   opp_type?:  string | null;
   grade?:     string | null;
   score?:     number | null;
@@ -150,9 +151,10 @@ function outcomeColor(o?: string | null): string {
 
 function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void }) {
   const router = useRouter();
-  const [rows,    setRows]    = useState<DetailRow[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err,     setErr]     = useState(false);
+  const [rows,        setRows]        = useState<DetailRow[] | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [err,         setErr]         = useState(false);
+  const [shariaOnly,  setShariaOnly]  = useState(false);
 
   const goToStock = (symbol: string | null) => {
     if (symbol) router.push(`/stocks/${symbol}`);
@@ -172,14 +174,31 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
   }, [type]);
 
   const isSignalType = type === 'signals_today' || type === 'signals_week' || type === 'sra_open';
+  const displayedRows = (rows ?? []).filter((r) => !shariaOnly || r.is_sharia);
 
   return (
     <section
       className="rounded-xl p-4 space-y-3"
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent-primary)' }}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="font-bold" style={{ fontSize: 'var(--text-sm)' }}>{DETAIL_TITLES[type]}</span>
+        <div className="flex items-center gap-3 mr-auto">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none" style={{ fontSize: 'var(--text-xs)', color: shariaOnly ? '#22c55e' : 'var(--text-muted)' }}>
+            <input
+              type="checkbox"
+              checked={shariaOnly}
+              onChange={(e) => setShariaOnly(e.target.checked)}
+              className="rounded"
+            />
+            شريعة فقط
+          </label>
+          {rows && (
+            <span style={{ fontSize: '11px', color: 'var(--text-disabled)' }}>
+              {displayedRows.length}/{rows.length}
+            </span>
+          )}
+        </div>
         <button onClick={onClose} className="p-1 rounded-md" style={{ color: 'var(--text-muted)', background: 'var(--bg-elevated)' }}>
           <X size={14} />
         </button>
@@ -194,7 +213,11 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
       ) : isSignalType ? (
         /* ── Signal cards: entry / TP / SL / RR ── */
         <div className="space-y-2 max-h-[480px] overflow-y-auto">
-          {rows.map((row, i) => (
+          {displayedRows.length === 0 ? (
+            <p className="text-center py-4" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+              لا توجد إشارات شريعة
+            </p>
+          ) : displayedRows.map((row, i) => (
             <div
               key={i}
               className="rounded-lg p-3 space-y-2 cursor-pointer hover:opacity-80 transition-opacity"
@@ -204,6 +227,11 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
               {/* header row */}
               <div className="flex items-center gap-2">
                 <span className="font-black num" style={{ fontSize: 'var(--text-sm)' }}>{row.symbol ?? '—'}</span>
+                {row.is_sharia && (
+                  <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
+                    شريعة
+                  </span>
+                )}
                 <span className="flex-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{row.name_ar ?? ''}</span>
                 {row.score != null && (
                   <span className="num font-bold px-1.5 py-0.5 rounded" style={{ fontSize: '11px', background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
@@ -241,7 +269,7 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
       ) : (
         /* ── Simple rows: scored stocks, KB, wins/losses ── */
         <div className="space-y-1 max-h-80 overflow-y-auto">
-          {rows.map((row, i) => (
+          {displayedRows.map((row, i) => (
             <div
               key={i}
               className="flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
