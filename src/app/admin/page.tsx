@@ -112,12 +112,14 @@ function StatCard({
 
 // ── Detail panel — shared drill-down area behind clickable cards ──────────────
 
-type DetailType = 'signals_today' | 'signals_week' | 'sra_open' | 'wins' | 'losses' | 'kb' | 'scored_today';
+type DetailType = 'signals_today' | 'signals_week' | 'sra_open' | 'trend_open' | 'all_open' | 'wins' | 'losses' | 'kb' | 'scored_today';
 
 const DETAIL_TITLES: Record<DetailType, string> = {
   signals_today: 'إشارات اليوم',
   signals_week:  'إشارات هذا الأسبوع',
   sra_open:      'صفقات SRA المفتوحة',
+  trend_open:    'صفقات TREND المفتوحة',
+  all_open:      'كل الصفقات المفتوحة',
   wins:          'صفقات رابحة',
   losses:        'صفقات خاسرة',
   kb:            'حالات الـ Knowledge Base',
@@ -381,7 +383,7 @@ function DetailPanel({ type, onClose }: { type: DetailType; onClose: () => void 
     return () => { cancelled = true; };
   }, [type]);
 
-  const isSignalType = type === 'signals_today' || type === 'signals_week' || type === 'sra_open';
+  const isSignalType = type === 'signals_today' || type === 'signals_week' || type === 'sra_open' || type === 'trend_open' || type === 'all_open';
   const displayedRows = (rows ?? []).filter((r) => !shariaOnly || r.is_sharia);
 
   return (
@@ -660,8 +662,8 @@ export default function AdminPage() {
                   sub={`7 أيام: ${data.signals.trend_7d ?? 0} إشارة`}
                   color="#22c55e"
                   icon={<TrendingUp size={13} />}
-                  onClick={() => toggle('sra_open')}
-                  active={selected === 'sra_open'}
+                  onClick={() => toggle('trend_open')}
+                  active={selected === 'trend_open'}
                 />
                 <StatCard
                   label="SRA مفتوحة"
@@ -669,6 +671,8 @@ export default function AdminPage() {
                   sub={`7 أيام: ${data.signals.sra_7d ?? 0} | 30 يوم: ${data.signals.sra_30d ?? 0}`}
                   color="#f59e0b"
                   icon={<Activity size={13} />}
+                  onClick={() => toggle('sra_open')}
+                  active={selected === 'sra_open'}
                 />
                 <StatCard
                   label="إجمالي مفتوحة"
@@ -676,6 +680,8 @@ export default function AdminPage() {
                   sub="كل الأنواع"
                   color="var(--text-secondary)"
                   icon={<Activity size={13} />}
+                  onClick={() => toggle('all_open')}
+                  active={selected === 'all_open'}
                 />
               </div>
             </section>
