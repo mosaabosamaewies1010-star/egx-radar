@@ -148,6 +148,8 @@ interface DetailRow {
   s2?:              number | null;
   money_flow_dir?:  string | null;
   money_flow_ratio?: number | null;
+  mf_reason?:       string | null;
+  mf_reason_ar?:    string | null;
   pb_ratio?:        number | null;
   why_signals?:     string[] | null;
   regime?:          string | null;
@@ -193,6 +195,11 @@ function SignalCard({ row, onNavigate }: { row: DetailRow; onNavigate: () => voi
   const mfLabel = row.money_flow_dir === 'IN' ? '↑ داخلة'
                 : row.money_flow_dir === 'OUT' ? '↓ خارجة'
                 : '— محايدة';
+
+  const mfReasonColor = row.mf_reason === 'PROFIT_TAKING' ? '#f59e0b'
+                      : row.mf_reason === 'PANIC'         ? '#818cf8'
+                      : row.mf_reason === 'DISTRIBUTION'  ? '#f97316'
+                      : 'var(--text-muted)';
 
   return (
     <div className="rounded-lg space-y-0 overflow-hidden" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
@@ -287,6 +294,14 @@ function SignalCard({ row, onNavigate }: { row: DetailRow; onNavigate: () => voi
             <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
               <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>تدفق السيولة</div>
               <div className="font-bold" style={{ fontSize: '11px', color: mfColor }}>{mfLabel}</div>
+              {row.money_flow_dir === 'OUT' && row.mf_reason_ar && (
+                <div
+                  className="mt-0.5 px-1 rounded"
+                  style={{ fontSize: '9px', color: mfReasonColor, background: `${mfReasonColor}18`, display: 'inline-block' }}
+                >
+                  {row.mf_reason_ar}
+                </div>
+              )}
             </div>
             {/* P/B Ratio */}
             <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-surface)' }}>
