@@ -424,18 +424,24 @@ function Controls({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <button
-        onClick={onShariaToggle}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors"
-        style={{
-          background: shariaFilter ? 'var(--success-bg)' : 'var(--bg-elevated)',
-          color:      shariaFilter ? 'var(--success)'    : 'var(--text-muted)',
-          border: `1px solid ${shariaFilter ? 'var(--success)' : 'var(--border-default)'}`,
-        }}
-      >
-        <Filter size={11} />
-        شريعة
-      </button>
+      <div className="flex flex-col items-center gap-0.5">
+        <button
+          onClick={onShariaToggle}
+          title="الأسهم المتوافقة مع الشريعة الإسلامية — طبقاً لقائمة ثاندر"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors"
+          style={{
+            background: shariaFilter ? 'var(--success-bg)' : 'var(--bg-elevated)',
+            color:      shariaFilter ? 'var(--success)'    : 'var(--text-muted)',
+            border: `1px solid ${shariaFilter ? 'var(--success)' : 'var(--border-default)'}`,
+          }}
+        >
+          <Filter size={11} />
+          شريعة
+        </button>
+        <span style={{ fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          قائمة ثاندر
+        </span>
+      </div>
       <button
         onClick={onRefresh}
         disabled={refreshing}
