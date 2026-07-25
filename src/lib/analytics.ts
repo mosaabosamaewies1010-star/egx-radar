@@ -28,7 +28,13 @@ export type AnalyticsEvent =
   | { name: 'discover_opened';    props: { section?: string } }
   | { name: 'watchlist_added';    props: { symbol: string } }
   | { name: 'morning_brief_opened'; props: Record<string, never> }
-  | { name: 'stock_searched';     props: { query: string } };
+  | { name: 'stock_searched';     props: { query: string } }
+  // 3-tier homepage
+  | { name: 'homepage_loaded';    props: { stage: number; trend: number; vol: number; regime?: string } }
+  | { name: 'stage_clicked';      props: { symbol: string; type: string; rank: number } }
+  | { name: 'trend_clicked';      props: { symbol: string; grade: string; rank: number } }
+  | { name: 'vol_radar_clicked';  props: { symbol: string; rvol: number; rank: number } }
+  | { name: 'stage_detail_clicked'; props: { symbol: string; type: string; rank: number } };
 
 type EventName = AnalyticsEvent['name'];
 type EventProps<N extends EventName> = Extract<AnalyticsEvent, { name: N }>['props'];
