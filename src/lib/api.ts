@@ -2,7 +2,7 @@
  * EGX Radar API Client
  * Typed wrappers for the Flask backend at localhost:5001
  */
-import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, PortfolioHealth, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse, TradeHistoryResponse } from './types';
+import type { StockData, MarketRegime, OpportunitiesResponse, MarketSummary, HeatmapResponse, User, AuthResponse, PortfolioResponse, PortfolioHolding, PortfolioHealth, WatchlistResponse, WatchlistItem, NotificationsResponse, NotificationItem, DiscoverResponse, MorningBrief, MyDay, PlansResponse, SubscribeResponse, ConfirmResponse, PaymentHistoryResponse, PerformanceResponse, TradeHistoryResponse, StageBreakoutResponse, TrendSignalsResponse, VolumeRadarResponse } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
 
@@ -258,6 +258,40 @@ export const api = {
     if (opts?.symbol)          params.set('symbol',  opts.symbol);
     const qs = params.toString() ? `?${params}` : '';
     return apiFetch<TradeHistoryResponse>(`/api/performance/trades${qs}`);
+  },
+
+  // ── Stage / Trend / Volume Radar ──────────────────────────────────────────
+
+  /** Stage Breakout signals (⭐⭐⭐⭐⭐) — TREND cross + VOL spike in last 60 bars */
+  getStageBreakouts(opts?: { sharia?: boolean; limit?: number }): Promise<StageBreakoutResponse> {
+    const params = new URLSearchParams();
+    if (opts?.sharia) params.set('sharia', '1');
+    if (opts?.limit)  params.set('limit',  String(opts.limit));
+    const qs = params.toString() ? `?${params}` : '';
+    return apiFetch<StageBreakoutResponse>(`/api/stage-breakout${qs}`);
+  },
+
+  /** Trend Initiation signals (⭐⭐⭐⭐) — A+/A only, Grade B excluded (PF < 1.0) */
+  getTrendSignals(opts?: { sharia?: boolean; limit?: number }): Promise<TrendSignalsResponse> {
+    const params = new URLSearchParams();
+    if (opts?.sharia) params.set('sharia', '1');
+    if (opts?.limit)  params.set('limit',  String(opts.limit));
+    const qs = params.toString() ? `?${params}` : '';
+    return apiFetch<TrendSignalsResponse>(`/api/trend-signals${qs}`);
+  },
+
+  /** Volume Radar signals (⭐⭐⭐) — VOL Expansion discovery only, no trend yet */
+  getVolumeRadar(opts?: { sharia?: boolean; limit?: number }): Promise<VolumeRadarResponse> {
+    const params = new URLSearchParams();
+    if (opts?.sharia) params.set('sharia', '1');
+    if (opts?.limit)  params.set('limit',  String(opts.limit));
+    const qs = params.toString() ? `?${params}` : '';
+    return apiFetch<VolumeRadarResponse>(`/api/volume-radar${qs}`);
+  },
+
+  /** OOS live performance for Core Engine v1.0 vs. backtest targets */
+  getOOSPerformance(): Promise<import('./types').OOSPerformance> {
+    return apiFetch('/api/performance/oos');
   },
 
   // ── Discover ──────────────────────────────────────────────────────────────

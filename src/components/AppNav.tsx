@@ -7,15 +7,13 @@ import { useAppStore } from '@/lib/store';
 import { Badge } from '@/design-system';
 
 const NAV_LINKS = [
-  { href: '/dashboard',      label: 'السوق' },
-  { href: '/',               label: 'الفرص' },
-  { href: '/discover',       label: 'اكتشف' },
-  { href: '/morning-brief',  label: 'موجز صباحي' },
-  { href: '/my-day',         label: 'يومي' },
-  { href: '/portfolio',      label: 'محفظتي' },
-  { href: '/watchlist',      label: 'متابعة' },
-  { href: '/performance',    label: 'سجل الأداء' },
-  { href: '/notifications',  label: 'إشعارات' },
+  { href: '/dashboard',   label: 'السوق' },
+  { href: '/',            label: 'الفرص' },
+  { href: '/portfolio',   label: 'محفظتي' },
+  { href: '/watchlist',   label: 'متابعة' },
+  { href: '/discover',    label: 'اكتشف' },
+  { href: '/stage',       label: '🚀 مراحل' },
+  { href: '/performance', label: 'سجل الأداء' },
 ];
 
 export function AppNav() {

@@ -3,7 +3,12 @@
 export type RegimeType = 'BULL' | 'SIDEWAYS' | 'BEAR' | 'VOLATILE' | 'LOW_LIQUIDITY';
 export type DataQuality = 'HIGH' | 'MEDIUM' | 'LOW' | 'NO_DATA';
 export type SignalQuality = 'HIGH' | 'MEDIUM' | 'LOW';
-export type OppType = 'Breakout' | 'Momentum' | 'Swing' | 'Sharia' | 'SRA_A+' | 'SRA_A' | 'SRA_B';
+export type OppType =
+  | 'Breakout' | 'Momentum' | 'Swing' | 'Sharia'
+  | 'SRA_A+' | 'SRA_A' | 'SRA_B'
+  | 'STAGE_STRONG' | 'STAGE_DEVELOPING'
+  | 'TREND_A+' | 'TREND_A'
+  | 'VOL_RADAR';
 export type SRAGrade = 'A+' | 'A' | 'B';
 export type OBVTrend = 'UP' | 'DOWN' | 'FLAT';
 
@@ -548,5 +553,133 @@ export interface TradeHistoryResponse {
   limit:  number;
   offset: number;
   trades: TradeRecord[];
+}
+
+// ── Feature 4: OOS Performance (Core Engine v1.0) ────────────────────────────
+
+export interface OOSEngineStats {
+  label:        string;
+  stars:        number;
+  backtest_pf:  number | null;
+  total_signals: number;
+  pending:      number;
+  closed:       number;
+  wins:         number;
+  live_pf:      number | null;
+  live_win_rate: number | null;
+}
+
+export interface OOSPerformance {
+  version:       string;
+  oos_start:     string;
+  days_live:     number;
+  total_signals: number;
+  pending:       number;
+  closed:        number;
+  by_engine: {
+    STAGE:     OOSEngineStats;
+    TREND:     OOSEngineStats;
+    VOL_RADAR: OOSEngineStats;
+  };
+}
+
+// ── Stage Breakout (⭐⭐⭐⭐⭐) ─────────────────────────────────────────────────
+
+export interface StageSignal {
+  id:              number;
+  symbol:          string;
+  name_ar:         string;
+  is_sharia:       boolean;
+  run_date:        string;
+  opp_type:        'STAGE_STRONG' | 'STAGE_DEVELOPING';
+  radar_score:     number;
+  stage_score:     number;
+  vol_age_bars:    number;
+  vol_rvol:        number;
+  adx:             number;
+  rsi:             number;
+  entry_price:     number | null;
+  fast_tp:         number | null;
+  fast_sl:         number | null;
+  balanced_tp:     number | null;
+  balanced_sl:     number | null;
+  tp1_price:       number | null;
+  tp2_price:       number | null;
+  sl_price:        number | null;
+  rr_ratio:        number | null;
+  confidence:      number;
+  regime:          string;
+  breadth_pct:     number | null;
+  last_price:      number | null;
+  last_change_pct: number | null;
+  explain:         string[];
+}
+
+export interface StageBreakoutResponse {
+  total: number;
+  items: StageSignal[];
+}
+
+// ── Trend Initiation (⭐⭐⭐⭐) ─────────────────────────────────────────────────
+
+export interface TrendSignal {
+  id:              number;
+  symbol:          string;
+  name_ar:         string;
+  is_sharia:       boolean;
+  run_date:        string;
+  opp_type:        'TREND_A+' | 'TREND_A';
+  grade:           'A+' | 'A';
+  trend_strength:  number;
+  entry_price:     number | null;
+  fast_tp:         number | null;
+  fast_sl:         number | null;
+  balanced_tp:     number | null;
+  balanced_sl:     number | null;
+  rr_ratio:        number | null;
+  adx:             number;
+  rsi:             number;
+  confidence:      number;
+  regime:          string;
+  breadth_pct:     number | null;
+  last_price:      number | null;
+  last_change_pct: number | null;
+  explain:         string[];
+}
+
+export interface TrendSignalsResponse {
+  total: number;
+  items: TrendSignal[];
+}
+
+// ── Volume Radar (⭐⭐⭐) ───────────────────────────────────────────────────────
+
+export interface VolumeRadarSignal {
+  id:              number;
+  symbol:          string;
+  name_ar:         string;
+  is_sharia:       boolean;
+  run_date:        string;
+  opp_type:        'VOL_RADAR';
+  vol_age_bars:    number;
+  vol_rvol:        number;
+  vol_date:        string | null;
+  ema_gap_pct:     number;
+  ema_fast:        number | null;
+  ema_slow:        number | null;
+  adt:             number | null;
+  close:           number | null;
+  watch_reasons:   string[];
+  confidence:      number;
+  regime:          string;
+  breadth_pct:     number | null;
+  last_price:      number | null;
+  last_change_pct: number | null;
+  explain:         string[];
+}
+
+export interface VolumeRadarResponse {
+  total: number;
+  items: VolumeRadarSignal[];
 }
 

@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Target, Award, BarChart2, Clock, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { PerformanceResponse, PerformanceSlice, TradeRecord, TradeHistoryResponse } from '@/lib/types';
+import type { PerformanceResponse, PerformanceSlice, TradeRecord, TradeHistoryResponse, OOSPerformance, OOSEngineStats } from '@/lib/types';
 import {
   Card, CardHeader, CardTitle, CardBody,
   ErrorState, WidgetSkeleton,
@@ -29,6 +29,142 @@ function wrColor(wr: number | null): string {
   if (wr >= 50) return 'var(--success)';
   if (wr >= 40) return '#f59e0b';
   return 'var(--error)';
+}
+
+// ── OOS Section: Core Engine v1.0 Live Tracking ───────────────────────────────
+
+const ENGINE_ORDER = ['STAGE', 'TREND', 'VOL_RADAR'] as const;
+
+function OOSEngineRow({ k, e }: { k: string; e: OOSEngineStats }) {
+  const stars  = '⭐'.repeat(e.stars);
+  const hasPF  = e.backtest_pf != null;
+  const livePF = e.live_pf;
+  const isWatch = k === 'VOL_RADAR';
+
+  const pfStatus =
+    livePF == null   ? null :
+    livePF >= (e.backtest_pf ?? 0) ? 'above' :
+    livePF >= 1.0    ? 'near'  : 'below';
+
+  const pfColor =
+    pfStatus === 'above' ? '#22c55e' :
+    pfStatus === 'near'  ? '#f59e0b' :
+    pfStatus === 'below' ? '#ef4444' :
+    'var(--text-muted)';
+
+  return (
+    <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      <td className="px-4 py-3">
+        <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{e.label}</div>
+        <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{stars}</div>
+      </td>
+      <td className="px-4 py-3 text-center">
+        {hasPF ? (
+          <span className="num font-bold text-sm" style={{ color: '#22c55e' }}>
+            {e.backtest_pf!.toFixed(3)}
+          </span>
+        ) : (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>مراقبة فقط</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-center">
+        {isWatch ? (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>—</span>
+        ) : livePF != null ? (
+          <span className="num font-bold text-sm" style={{ color: pfColor }}>{livePF.toFixed(3)}</span>
+        ) : (
+          <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>جاري التجميع</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-center num text-sm" style={{ color: 'var(--text-secondary)' }}>
+        {e.total_signals}
+      </td>
+      <td className="px-4 py-3 text-center num text-sm" style={{ color: 'var(--text-muted)' }}>
+        {e.closed} / {e.total_signals}
+      </td>
+      <td className="px-4 py-3 text-center">
+        {!isWatch && e.live_win_rate != null ? (
+          <span className="num text-sm font-medium" style={{ color: e.live_win_rate >= 50 ? '#22c55e' : '#f59e0b' }}>
+            {e.live_win_rate.toFixed(0)}%
+          </span>
+        ) : (
+          <span style={{ color: 'var(--text-disabled)' }}>—</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function OOSSection({ oos }: { oos: OOSPerformance }) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ border: '1px solid rgba(139,92,246,0.3)', background: 'color-mix(in srgb, #8b5cf6 4%, var(--bg-surface))' }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: '1px solid rgba(139,92,246,0.2)' }}
+      >
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black" style={{ color: '#a78bfa' }}>🔬 Core Engine v1.0</span>
+            <span
+              className="text-xs px-2 py-0.5 rounded-full font-bold"
+              style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}
+            >
+              OOS Live
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+            Out-of-Sample — إشارات حية مقارنة بالـ Backtest · بدأ التتبع 25 يوليو 2026
+          </p>
+        </div>
+        <div className="text-end">
+          <div className="num font-black text-2xl" style={{ color: '#a78bfa' }}>{oos.days_live}</div>
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>يوم OOS</div>
+        </div>
+      </div>
+
+      {/* Stats summary */}
+      <div className="grid grid-cols-3 divide-x divide-x-reverse" style={{ borderBottom: '1px solid rgba(139,92,246,0.15)' }}>
+        {[
+          { label: 'إجمالي الإشارات', value: oos.total_signals },
+          { label: 'قيد التتبع',       value: oos.pending },
+          { label: 'أُغلق',            value: oos.closed },
+        ].map(({ label, value }) => (
+          <div key={label} className="py-3 text-center">
+            <div className="num font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{value}</div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Engine table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" dir="rtl">
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(139,92,246,0.15)', background: 'rgba(139,92,246,0.06)' }}>
+              {['المحرك', 'Backtest PF', 'Live PF', 'الإشارات', 'أُغلق', 'Win Rate'].map(h => (
+                <th key={h} className="px-4 py-2.5 text-right text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ENGINE_ORDER.map(k => (
+              <OOSEngineRow key={k} k={k} e={oos.by_engine[k]} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {oos.closed === 0 && (
+        <div className="px-5 py-3 text-xs text-center" style={{ color: 'var(--text-disabled)' }}>
+          OOS بدأ للتو — Live PF يظهر عند إغلاق أول صفقة
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── WGT-100: Overall stats row ────────────────────────────────────────────────
@@ -410,6 +546,7 @@ function TradeHistoryTable() {
 
 export default function PerformancePage() {
   const [data,    setData]    = useState<PerformanceResponse | null>(null);
+  const [oos,     setOos]     = useState<OOSPerformance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
@@ -417,7 +554,12 @@ export default function PerformancePage() {
     setLoading(true);
     setError(null);
     try {
-      setData(await api.getPerformance());
+      const [perf, oosData] = await Promise.all([
+        api.getPerformance(),
+        api.getOOSPerformance().catch(() => null),
+      ]);
+      setData(perf);
+      setOos(oosData);
     } catch {
       setError('تعذّر تحميل بيانات الأداء');
     } finally {
@@ -451,6 +593,9 @@ export default function PerformancePage() {
           <ErrorState scenario="network" onRetry={load} />
         ) : data && data.overall ? (
           <>
+            {/* OOS v1.0 Live Tracking */}
+            {oos && <OOSSection oos={oos} />}
+
             {/* WGT-100 */}
             <OverallStats s={data.overall} />
 

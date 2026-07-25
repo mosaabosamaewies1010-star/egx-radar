@@ -13,6 +13,9 @@ interface AppStore {
   shariaFilter: boolean;
   setShariaFilter: (v: boolean) => void;
 
+  portfolioEgp:    number;
+  setPortfolioEgp: (v: number) => void;
+
   // Auth (Slice 3)
   user:     User | null;
   token:    string | null;
@@ -22,8 +25,9 @@ interface AppStore {
   initAuth: () => void;
 }
 
-const LS_TOKEN = 'egx_token';
-const LS_USER  = 'egx_user';
+const LS_TOKEN     = 'egx_token';
+const LS_USER      = 'egx_user';
+const LS_PORTFOLIO = 'egx_portfolio_egp';
 
 export const useAppStore = create<AppStore>((set) => ({
   lang: 'ar',
@@ -35,6 +39,12 @@ export const useAppStore = create<AppStore>((set) => ({
 
   shariaFilter: false,
   setShariaFilter: (shariaFilter) => set({ shariaFilter }),
+
+  portfolioEgp: 100_000,
+  setPortfolioEgp: (portfolioEgp) => {
+    if (typeof window !== 'undefined') localStorage.setItem(LS_PORTFOLIO, String(portfolioEgp));
+    set({ portfolioEgp });
+  },
 
   // Auth
   user:  null,
@@ -59,9 +69,11 @@ export const useAppStore = create<AppStore>((set) => ({
   },
 
   initAuth: () => {
-    const token = localStorage.getItem(LS_TOKEN);
-    const raw   = localStorage.getItem(LS_USER);
-    const user  = raw ? (JSON.parse(raw) as User) : null;
-    set({ token, user });
+    const token       = localStorage.getItem(LS_TOKEN);
+    const raw         = localStorage.getItem(LS_USER);
+    const user        = raw ? (JSON.parse(raw) as User) : null;
+    const portStr     = localStorage.getItem(LS_PORTFOLIO);
+    const portfolioEgp = portStr ? Number(portStr) : 100_000;
+    set({ token, user, portfolioEgp });
   },
 }));
